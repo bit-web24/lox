@@ -49,6 +49,34 @@ impl Scanner {
             '+' => Some(PLUS),
             ';' => Some(SEMICOLON),
             '*' => Some(STAR),
+            '!' => {
+                if self.match_('=') {
+                    Some(BANG_EQUAL)
+                } else {
+                    Some(BANG)
+                }
+            }
+            '=' => {
+                if self.match_('=') {
+                    Some(EQUAL_EQUAL)
+                } else {
+                    Some(EQUAL)
+                }
+            }
+            '<' => {
+                if self.match_('=') {
+                    Some(LESS_EQUAL)
+                } else {
+                    Some(LESS)
+                }
+            }
+            '>' => {
+                if self.match_('=') {
+                    Some(GREATER_EQUAL)
+                } else {
+                    Some(GREATER)
+                }
+            }
             _ => None,
         };
 
@@ -82,5 +110,17 @@ impl Scanner {
             "Error: while adding token; File: scanner.rs; Line: {}",
             line!()
         );
+    }
+
+    fn match_(&mut self, ch: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        if self.source.chars().nth(self.current as usize) != Some(ch) {
+            return false;
+        }
+
+        self.current += 1;
+        true
     }
 }
