@@ -22,7 +22,7 @@ impl Scanner {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
-            scan_token();
+            self.scan_token();
         }
 
         self.tokens
@@ -38,53 +38,68 @@ impl Scanner {
     fn scan_token(&mut self) {
         let ch: char = self.advance();
         use TokenType::*;
-        let token_type = match ch {
-            '(' => Some(LEFT_PAREN),
-            ')' => Some(RIGHT_PAREN),
-            '{' => Some(LEFT_BRACE),
-            '}' => Some(RIGHT_BRACE),
-            ',' => Some(COMMA),
-            '.' => Some(DOT),
-            '-' => Some(MINUS),
-            '+' => Some(PLUS),
-            ';' => Some(SEMICOLON),
-            '*' => Some(STAR),
+        let token_type: Result<Option<TokenType>, Option<()>> = match ch {
+            '(' => Ok(Some(LEFT_PAREN)),
+            ')' => Ok(Some(RIGHT_PAREN)),
+            '{' => Ok(Some(LEFT_BRACE)),
+            '}' => Ok(Some(RIGHT_BRACE)),
+            ',' => Ok(Some(COMMA)),
+            '.' => Ok(Some(DOT)),
+            '-' => Ok(Some(MINUS)),
+            '+' => Ok(Some(PLUS)),
+            ';' => Ok(Some(SEMICOLON)),
+            '*' => Ok(Some(STAR)),
             '!' => {
                 if self.match_('=') {
-                    Some(BANG_EQUAL)
+                    Ok(Some(BANG_EQUAL))
                 } else {
-                    Some(BANG)
+                    Ok(Some(BANG))
                 }
             }
             '=' => {
                 if self.match_('=') {
-                    Some(EQUAL_EQUAL)
+                    Ok(Some(EQUAL_EQUAL))
                 } else {
-                    Some(EQUAL)
+                    Ok(Some(EQUAL))
                 }
             }
             '<' => {
                 if self.match_('=') {
-                    Some(LESS_EQUAL)
+                    Ok(Some(LESS_EQUAL))
                 } else {
-                    Some(LESS)
+                    Ok(Some(LESS))
                 }
             }
             '>' => {
                 if self.match_('=') {
-                    Some(GREATER_EQUAL)
+                    Ok(Some(GREATER_EQUAL))
                 } else {
-                    Some(GREATER)
+                    Ok(Some(GREATER))
                 }
             }
-            _ => None,
+            '/' => {
+                if self.match_('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                    Ok(None)
+                } else {
+                    Ok(Some(SLASH))
+                }
+            }
+            '\n' => {
+                self.line += 1;
+                Ok(None)
+            }
+            ' ' | '\r' | '\t' => Ok(None),
+            _ => Err(None),
         };
 
-        if let Some(tt) = token_type {
-            self.add_token(tt);
+        match token_type {
+            Ok(Some(tt)) => self.add_token(tt),
+            Ok(None) => {},
+            Err(_) => panic!("Error: Invalid Token; Line: {}", self.line),
         }
-
-        panic!("Error: Invalid Token; Line: {}", line!());
     }
 
     fn advance(&mut self) -> char {
@@ -122,5 +137,13 @@ impl Scanner {
 
         self.current += 1;
         true
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            '\0'
+        } else {
+            self.source.chars().nth(self.current as usize).unwrap()
+        }
     }
 }
