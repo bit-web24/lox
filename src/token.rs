@@ -1,16 +1,16 @@
-mod token_type;
+pub mod token_type;
 use token_type::TokenType;
 
 #[derive(Debug)]
 pub struct Token {
     type_: TokenType,
     lexeme: String,
-    literal: Object,
+    literal: Option<Object>,
     line: i64,
 }
 
 impl Token {
-    pub fn new(type_: TokenType, lexeme: String, literal: Object, line: i64) -> Self {
+    pub fn new(type_: TokenType, lexeme: String, literal: Option<Object>, line: i64) -> Self {
         Self {
             type_,
             lexeme,

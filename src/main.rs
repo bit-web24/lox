@@ -1,6 +1,10 @@
 use std::{io::Result, process::exit};
+
 mod token;
+mod scanner;
+
 use token::Token;
+use scanner::Scanner;
 
 struct Lox {
     had_error: bool,
