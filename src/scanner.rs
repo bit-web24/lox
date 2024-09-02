@@ -200,6 +200,13 @@ impl Scanner {
                 self.advance();
             }
         }
+
+        let double_str = self
+            .source
+            .get(self.start as usize..self.current as usize)
+            .unwrap();
+        let double = double_str.parse::<f64>().unwrap();
+        self.add_token_(TokenType::NUMBER, double);
     }
 
     fn peek_next(&self) -> char {
