@@ -92,12 +92,19 @@ impl Scanner {
                 Ok(None)
             }
             ' ' | '\r' | '\t' => Ok(None),
+            '"' => {
+                if let Err(_) = self.string() {
+                    Err(None)
+                } else {
+                    Ok(None)
+                }
+            }
             _ => Err(None),
         };
 
         match token_type {
             Ok(Some(tt)) => self.add_token(tt),
-            Ok(None) => {},
+            Ok(None) => {}
             Err(_) => panic!("Error: Invalid Token; Line: {}", self.line),
         }
     }
@@ -145,5 +152,29 @@ impl Scanner {
         } else {
             self.source.chars().nth(self.current as usize).unwrap()
         }
+    }
+
+    fn string(&mut self) -> Result<(), ()> {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            eprintln!("Line: {}; Message: Unterminated string;", self.line);
+            return Err(());
+        }
+
+        self.advance();
+
+        let value = self
+            .source
+            .get(((self.start + 1) as usize)..((self.current - 1) as usize))
+            .unwrap()
+            .to_string();
+        self.add_token_(TokenType::STRING, value);
+        Ok(())
     }
 }
