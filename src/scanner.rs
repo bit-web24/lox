@@ -99,7 +99,14 @@ impl Scanner {
                     Ok(None)
                 }
             }
-            _ => Err(None),
+            dig => {
+                if Self::is_digit(dig) {
+                    self.number();
+                    Ok(None)
+                } else {
+                    Err(None)
+                }
+            }
         };
 
         match token_type {
@@ -176,5 +183,32 @@ impl Scanner {
             .to_string();
         self.add_token_(TokenType::STRING, value);
         Ok(())
+    }
+
+    fn is_digit(ch: char) -> bool {
+        ch >= '0' && ch <= '9'
+    }
+
+    fn number(&mut self) {
+        while Self::is_digit(self.peek()) {
+            self.advance();
+        }
+
+        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+            self.advance();
+            while Self::is_digit(self.peek()) {
+                self.advance();
+            }
+        }
+    }
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() as i64 {
+            return '\0';
+        }
+        self.source
+            .chars()
+            .nth((self.current + 1) as usize)
+            .unwrap()
     }
 }
