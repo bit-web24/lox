@@ -1,7 +1,8 @@
-use std::{io::Result, process::exit};
+use std::{io::{Result, Write}, process::exit};
 
 mod token;
 mod scanner;
+mod object;
 
 use token::Token;
 use scanner::Scanner;
@@ -16,13 +17,14 @@ impl Lox {
     }
 
     pub fn exec(&mut self, args: Vec<String>) -> Result<()> {
-        if args.len() > 1 {
+        println!("args: {:?}", args);
+        if args.len() > 2 {
             println!("Usage: lox [script]");
             exit(64);
         } else if args.len() == 1 {
-            self.run_file(args.into_iter().next().unwrap());
+            self.run_file(args.into_iter().next().unwrap())?;
         } else {
-            self.run_prompt();
+            self.run_prompt()?;
         }
 
         Ok(())
@@ -30,7 +32,7 @@ impl Lox {
 
     fn run_file(&self, path: String) -> Result<()> {
         let contents = std::fs::read_to_string(path)?;
-        self.run(contents);
+        self.run(contents)?;
         if self.had_error {
             exit(65);
         }
@@ -40,11 +42,12 @@ impl Lox {
     fn run_prompt(&mut self) -> Result<()> {
         loop {
             print!("lox> ");
+            std::io::stdout().flush()?;
             let mut line = String::new();
             if std::io::stdin().read_line(&mut line)? == 0 {
                 break;
             }
-            self.run(line.trim().to_string());
+            self.run(line.trim().to_string())?;
             self.had_error = false;
         }
         Ok(())
@@ -69,8 +72,9 @@ impl Lox {
     }
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let mut lox: Lox = Lox::new();
     let args: Vec<String> = std::env::args().collect();
-    lox.exec(args);
+    lox.exec(args)?;
+    Ok(())
 }

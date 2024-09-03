@@ -1,4 +1,5 @@
 use crate::token::{token_type::TokenType, Token};
+use crate::object::Object;
 
 pub struct Scanner {
     source: String,
@@ -28,7 +29,7 @@ impl Scanner {
         self.tokens
             .push(Token::new(TokenType::EOF, "".to_string(), None, self.line));
 
-        self.tokens
+        self.tokens.clone()
     }
 
     fn is_at_end(&self) -> bool {
@@ -124,22 +125,23 @@ impl Scanner {
         ch
     }
 
-    fn add_token(&self, type_: TokenType) {
+    fn add_token(&mut self, type_: TokenType) {
         self.add_token_(type_, None);
     }
 
-    fn add_token_(&self, type_: TokenType, literal: Object) {
+    fn add_token_(&mut self, type_: TokenType, literal: Option<Object>) {
         if let Some(text) = self
             .source
             .get((self.start as usize)..(self.current as usize))
         {
             self.tokens
-                .push(Token::new(type_, text.to_string(), literal, self.line))
+                .push(Token::new(type_, text.to_string(), literal, self.line));
+        } else {
+            panic!(
+                "Error: while adding token; File: scanner.rs; Line: {}",
+                line!()
+            );
         }
-        panic!(
-            "Error: while adding token; File: scanner.rs; Line: {}",
-            line!()
-        );
     }
 
     fn match_(&mut self, ch: char) -> bool {
@@ -182,7 +184,7 @@ impl Scanner {
             .get(((self.start + 1) as usize)..((self.current - 1) as usize))
             .unwrap()
             .to_string();
-        self.add_token_(TokenType::STRING, value);
+        self.add_token_(TokenType::STRING, Some(Object::String(value)));
         Ok(())
     }
 
@@ -207,7 +209,7 @@ impl Scanner {
             .get(self.start as usize..self.current as usize)
             .unwrap();
         let double = double_str.parse::<f64>().unwrap();
-        self.add_token_(TokenType::NUMBER, double);
+        self.add_token_(TokenType::NUMBER, Some(Object::Number(double)));
     }
 
     fn peek_next(&self) -> char {

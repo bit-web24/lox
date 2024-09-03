@@ -1,7 +1,9 @@
 pub mod token_type;
-use token_type::TokenType;
 
-#[derive(Debug)]
+use token_type::TokenType;
+use crate::object::Object;
+
+#[derive(Debug, Clone)]
 pub struct Token {
     type_: TokenType,
     lexeme: String,
