@@ -1,11 +1,14 @@
-use std::{io::{Result, Write}, process::exit};
+use std::{
+    io::{Result, Write},
+    process::exit,
+};
 
-mod token;
-mod scanner;
 mod object;
+mod scanner;
+mod token;
 
-use token::Token;
 use scanner::Scanner;
+use token::Token;
 
 struct Lox {
     had_error: bool,
