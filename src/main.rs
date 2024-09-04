@@ -17,12 +17,13 @@ impl Lox {
     }
 
     pub fn exec(&mut self, args: Vec<String>) -> Result<()> {
-        println!("args: {:?}", args);
         if args.len() > 2 {
             println!("Usage: lox [script]");
             exit(64);
-        } else if args.len() == 1 {
-            self.run_file(args.into_iter().next().unwrap())?;
+        } else if args.len() == 2 {
+            let mut args = args.into_iter();
+            args.next();
+            self.run_file(args.next().unwrap())?;
         } else {
             self.run_prompt()?;
         }
