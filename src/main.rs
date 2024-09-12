@@ -6,6 +6,7 @@ use std::{
 mod object;
 mod scanner;
 mod token;
+mod expr;
 
 use scanner::Scanner;
 use token::Token;
