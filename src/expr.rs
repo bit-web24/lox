@@ -223,7 +223,7 @@ impl<T> Expr<T> for Unary<T> {
     }
 }
 
-struct Variable {
+pub struct Variable {
     name: Token,
 }
 

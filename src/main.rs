@@ -7,6 +7,7 @@ mod object;
 mod scanner;
 mod token;
 mod expr;
+mod stmt;
 
 use scanner::Scanner;
 use token::Token;
