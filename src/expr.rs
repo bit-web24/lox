@@ -36,14 +36,14 @@ impl<T> Expr<T> for Assign<T> {
     }
 }
 
-struct Binary<T> {
+pub struct Binary<T> {
     left: Box<dyn Expr<T>>,
     operator: Token,
     right: Box<dyn Expr<T>>,
 }
 
 impl<T> Binary<T> {
-    fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
+    pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self {
             left,
             operator,
@@ -97,12 +97,12 @@ impl<T> Expr<T> for Get<T> {
     }
 }
 
-struct Grouping<T> {
+pub struct Grouping<T> {
     expression: Box<dyn Expr<T>>,
 }
 
 impl<T> Grouping<T> {
-    fn new(expression: Box<dyn Expr<T>>) -> Self {
+    pub fn new(expression: Box<dyn Expr<T>>) -> Self {
         Self { expression }
     }
 }
@@ -113,12 +113,12 @@ impl<T> Expr<T> for Grouping<T> {
     }
 }
 
-struct Literal {
+pub struct Literal {
     value: Object,
 }
 
 impl Literal {
-    fn new(value: Object) -> Self {
+    pub fn new(value: Object) -> Self {
         Self { value }
     }
 }
@@ -206,13 +206,13 @@ impl<T> Expr<T> for This {
     }
 }
 
-struct Unary<T> {
+pub struct Unary<T> {
     operator: Token,
     right: Box<dyn Expr<T>>,
 }
 
 impl<T> Unary<T> {
-    fn new(operator: Token, right: Box<dyn Expr<T>>) -> Self {
+    pub fn new(operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self { operator, right }
     }
 }
@@ -228,7 +228,7 @@ pub struct Variable {
 }
 
 impl Variable {
-    fn new(name: Token) -> Self {
+    pub fn new(name: Token) -> Self {
         Self { name }
     }
 }

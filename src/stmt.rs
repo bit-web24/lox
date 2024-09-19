@@ -1,5 +1,5 @@
 use crate::expr::{self, Expr};
-use crate::{object::Object, token::Token};
+use crate::token::Token;
 
 pub trait Stmt<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T;
