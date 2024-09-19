@@ -16,11 +16,11 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    fn expression<T: 'static>(&self) -> Box<dyn Expr<T>> {
+    fn expression<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
         return self.equality::<T>();
     }
 
-    fn equality<T: 'static>(&self) -> Box<dyn Expr<T>> {
+    fn equality<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
         let mut expression: Box<dyn Expr<T>> = self.comparison::<T>();
 
         while self.match_::<T>(vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
@@ -114,26 +114,26 @@ impl Parser {
         return self.primary();
     }
 
-    fn primary<T>(&mut self) -> Box<dyn Expr<T>> {
-        if self.match_(vec![TokenType::FALSE]) {
+    fn primary<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+        if self.match_::<T>(vec![TokenType::FALSE]) {
             return Box::new(expr::Literal::new(Object::Boolean(false)));
         }
 
-        if self.match_(vec![TokenType::TRUE]) {
+        if self.match_::<T>(vec![TokenType::TRUE]) {
             return Box::new(expr::Literal::new(Object::Boolean(true)));
         }
 
-        if self.match_(vec![TokenType::NIL]) {
+        if self.match_::<T>(vec![TokenType::NIL]) {
             return Box::new(expr::Literal::new(Object::Nil));
         }
 
-        if self.match_(vec![TokenType::NUMBER, TokenType::STRING]) {
+        if self.match_::<T>(vec![TokenType::NUMBER, TokenType::STRING]) {
             return Box::new(expr::Literal::new(self.previous::<T>().literal.unwrap()));
         }
 
-        if self.match_(vec![TokenType::LEFT_PAREN]) {
+        if self.match_::<T>(vec![TokenType::LEFT_PAREN]) {
             let expression: Box<dyn Expr<T>> = self.expression();
-            self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
+            self.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
             return Box::new(expr::Grouping::new(expression));
         }
 
@@ -148,19 +148,41 @@ impl Parser {
         self.error::<T>(self.peek(), message);
     }
 
-    fn error<T>(&self, token: &Token, message: &str) -> Box<dyn ParseError> {
+    fn error<T>(&self, token: &Token, message: &str) {
         if token.type_ == TokenType::EOF {
-            self.report(token.line, " at end", message)
+            self.report(token.line, " at end", message);
         } else {
-            self.report(token.line, format!(" at '{}'", token.lexeme).as_str(), message)
+            self.report(
+                token.line,
+                format!(" at '{}'", token.lexeme).as_str(),
+                message,
+            );
         }
     }
 
-    fn report(&self, line: i64, at: &str, msg: &str) -> Box<dyn ParseError> {
-        
+    fn report(&self, line: i64, at: &str, msg: &str) {
+        panic!("[line {}] Error{}: {}", line, at, std::format!("{}", msg));
     }
-}
 
-trait ParseError {
-
+    fn synchronize<T>(&mut self) {
+        self.advance::<T>();
+        while !self.is_at_end() {
+            if self.previous::<T>().type_ == TokenType::SEMICOLON {
+                return;
+            }
+            match self.peek().type_ {
+                TokenType::CLASS
+                | TokenType::FUN
+                | TokenType::VAR
+                | TokenType::FOR
+                | TokenType::IF
+                | TokenType::WHILE
+                | TokenType::PRINT
+                | TokenType::RETURN => (),
+                _ => {
+                    self.advance::<T>();
+                }
+            }
+        }
+    }
 }
