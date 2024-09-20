@@ -145,23 +145,7 @@ impl Parser {
             self.advance::<T>();
             return;
         }
-        self.error(self.peek(), message);
-    }
-
-    fn error(&self, token: &Token, message: &str) {
-        if token.type_ == TokenType::EOF {
-            self.report(token.line, " at end", message);
-        } else {
-            self.report(
-                token.line,
-                format!(" at '{}'", token.lexeme).as_str(),
-                message,
-            );
-        }
-    }
-
-    fn report(&self, line: i64, at: &str, msg: &str) {
-        panic!("[line {}] Error{}: {}", line, at, std::format!("{}", msg));
+        error(self.peek(), message);
     }
 
     fn synchronize<T>(&mut self) {
@@ -185,4 +169,20 @@ impl Parser {
             }
         }
     }
+}
+
+fn error(token: &Token, message: &str) {
+    if token.type_ == TokenType::EOF {
+        report(token.line, " at end", message);
+    } else {
+        report(
+            token.line,
+            format!(" at '{}'", token.lexeme).as_str(),
+            message,
+        );
+    }
+}
+
+fn report(line: i64, at: &str, msg: &str) {
+    panic!("[line {}] Error{}: {}", line, at, std::format!("{}", msg));
 }
