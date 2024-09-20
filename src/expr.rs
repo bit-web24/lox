@@ -1,10 +1,12 @@
+use std::fmt::Debug;
+
 use crate::{object::Object, token::Token};
 
-pub trait Expr<T> {
+pub trait Expr<T: Debug>: Debug {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T;
 }
 
-pub trait Visitor<T> {
+pub trait Visitor<T: Debug> {
     fn visit_assign_expr(&self, expr: &Assign<T>) -> T;
     fn visit_binary_expr(&self, expr: &Binary<T>) -> T;
     fn visit_call_expr(&self, expr: &Call<T>) -> T;
@@ -19,30 +21,32 @@ pub trait Visitor<T> {
     fn visit_variable_expr(&self, expr: &Variable) -> T;
 }
 
-pub struct Assign<T> {
+#[derive(Debug)]
+pub struct Assign<T: Debug> {
     name: Token,
     value: Box<dyn Expr<T>>,
 }
 
-impl<T> Assign<T> {
+impl<T: Debug> Assign<T> {
     fn new(name: Token, value: Box<dyn Expr<T>>) -> Self {
         Self { name, value }
     }
 }
 
-impl<T> Expr<T> for Assign<T> {
+impl<T: Debug> Expr<T> for Assign<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_assign_expr(self);
+        visitor.visit_assign_expr(self)
     }
 }
 
-pub struct Binary<T> {
+#[derive(Debug)]
+pub struct Binary<T: Debug> {
     left: Box<dyn Expr<T>>,
     operator: Token,
     right: Box<dyn Expr<T>>,
 }
 
-impl<T> Binary<T> {
+impl<T: Debug> Binary<T> {
     pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self {
             left,
@@ -52,19 +56,20 @@ impl<T> Binary<T> {
     }
 }
 
-impl<T> Expr<T> for Binary<T> {
+impl<T: Debug> Expr<T> for Binary<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_binary_expr(self);
+        visitor.visit_binary_expr(self)
     }
 }
 
-pub struct Call<T> {
+#[derive(Debug)]
+pub struct Call<T: Debug> {
     callee: Box<dyn Expr<T>>,
     paren: Token,
     arguments: Vec<Box<dyn Expr<T>>>,
 }
 
-impl<T> Call<T> {
+impl<T: Debug> Call<T> {
     fn new(callee: Box<dyn Expr<T>>, paren: Token, arguments: Vec<Box<dyn Expr<T>>>) -> Self {
         Self {
             callee,
@@ -74,45 +79,48 @@ impl<T> Call<T> {
     }
 }
 
-impl<T> Expr<T> for Call<T> {
+impl<T: Debug> Expr<T> for Call<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_call_expr(self);
+        visitor.visit_call_expr(self)
     }
 }
 
-pub struct Get<T> {
+#[derive(Debug)]
+pub struct Get<T: Debug> {
     object: Box<dyn Expr<T>>,
     name: Token,
 }
 
-impl<T> Get<T> {
+impl<T: Debug> Get<T> {
     fn new(object: Box<dyn Expr<T>>, name: Token) -> Self {
         Self { object, name }
     }
 }
 
-impl<T> Expr<T> for Get<T> {
+impl<T: Debug> Expr<T> for Get<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_get_expr(self);
+        visitor.visit_get_expr(self)
     }
 }
 
-pub struct Grouping<T> {
+#[derive(Debug)]
+pub struct Grouping<T: Debug> {
     expression: Box<dyn Expr<T>>,
 }
 
-impl<T> Grouping<T> {
+impl<T: Debug> Grouping<T> {
     pub fn new(expression: Box<dyn Expr<T>>) -> Self {
         Self { expression }
     }
 }
 
-impl<T> Expr<T> for Grouping<T> {
+impl<T: Debug> Expr<T> for Grouping<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_group_expr(self);
+        visitor.visit_group_expr(self)
     }
 }
 
+#[derive(Debug)]
 pub struct Literal {
     value: Object,
 }
@@ -123,19 +131,20 @@ impl Literal {
     }
 }
 
-impl<T> Expr<T> for Literal {
+impl<T: Debug> Expr<T> for Literal {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_literal_expr(self);
+        visitor.visit_literal_expr(self)
     }
 }
 
-pub struct Logical<T> {
+#[derive(Debug)]
+pub struct Logical<T: Debug> {
     left: Box<dyn Expr<T>>,
     operator: Token,
     right: Box<dyn Expr<T>>,
 }
 
-impl<T> Logical<T> {
+impl<T: Debug> Logical<T> {
     fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self {
             left,
@@ -145,19 +154,20 @@ impl<T> Logical<T> {
     }
 }
 
-impl<T> Expr<T> for Logical<T> {
+impl<T: Debug> Expr<T> for Logical<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_logical_expr(self);
+        visitor.visit_logical_expr(self)
     }
 }
 
-pub struct Set<T> {
+#[derive(Debug)]
+pub struct Set<T: Debug> {
     object: Box<dyn Expr<T>>,
     name: Token,
     value: Box<dyn Expr<T>>,
 }
 
-impl<T> Set<T> {
+impl<T: Debug> Set<T> {
     fn new(object: Box<dyn Expr<T>>, name: Token, value: Box<dyn Expr<T>>) -> Self {
         Self {
             object,
@@ -167,12 +177,13 @@ impl<T> Set<T> {
     }
 }
 
-impl<T> Expr<T> for Set<T> {
+impl<T: Debug> Expr<T> for Set<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_set_expr(self);
+        visitor.visit_set_expr(self)
     }
 }
 
+#[derive(Debug)]
 pub struct Super {
     keyword: Token,
     method: Token,
@@ -184,12 +195,13 @@ impl Super {
     }
 }
 
-impl<T> Expr<T> for Super {
+impl<T: Debug> Expr<T> for Super {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_super_expr(self);
+        visitor.visit_super_expr(self)
     }
 }
 
+#[derive(Debug)]
 pub struct This {
     keyword: Token,
 }
@@ -200,29 +212,31 @@ impl This {
     }
 }
 
-impl<T> Expr<T> for This {
+impl<T: Debug> Expr<T> for This {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_this_expr(self);
+        visitor.visit_this_expr(self)
     }
 }
 
-pub struct Unary<T> {
+#[derive(Debug)]
+pub struct Unary<T: Debug> {
     operator: Token,
     right: Box<dyn Expr<T>>,
 }
 
-impl<T> Unary<T> {
+impl<T: Debug> Unary<T> {
     pub fn new(operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self { operator, right }
     }
 }
 
-impl<T> Expr<T> for Unary<T> {
+impl<T: Debug> Expr<T> for Unary<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_unary_expr(self);
+        visitor.visit_unary_expr(self)
     }
 }
 
+#[derive(Debug)]
 pub struct Variable {
     name: Token,
 }
@@ -233,8 +247,8 @@ impl Variable {
     }
 }
 
-impl<T> Expr<T> for Variable {
+impl<T: Debug> Expr<T> for Variable {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T {
-        return visitor.visit_variable_expr(self);
+        visitor.visit_variable_expr(self)
     }
 }

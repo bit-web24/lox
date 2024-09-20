@@ -1,2 +1,1 @@
-var x = "Hello, world!";
-print x;
+(1+2 == 4+5)

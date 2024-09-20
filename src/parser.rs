@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, vec};
+use std::{borrow::Borrow, fmt::Debug, vec};
 
 use crate::{
     expr::{self, Expr},
@@ -6,7 +6,7 @@ use crate::{
     token::{token_type::TokenType, Token},
 };
 
-struct Parser {
+pub struct Parser {
     tokens: Vec<Token>,
     current: i64,
 }
@@ -16,11 +16,11 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    fn expression<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    pub fn expression<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         return self.equality::<T>();
     }
 
-    fn equality<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    fn equality<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         let mut expression: Box<dyn Expr<T>> = self.comparison::<T>();
 
         while self.match_::<T>(vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
@@ -70,7 +70,7 @@ impl Parser {
         self.tokens.get(self.current as usize - 1).unwrap().clone()
     }
 
-    fn comparison<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    fn comparison<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         use TokenType::*;
 
         let mut expression: Box<dyn Expr<T>> = self.term::<T>();
@@ -82,7 +82,7 @@ impl Parser {
         return expression;
     }
 
-    fn term<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    fn term<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         let mut expression: Box<dyn Expr<T>> = self.factor::<T>();
 
         while self.match_::<T>(vec![TokenType::MINUS, TokenType::PLUS]) {
@@ -93,7 +93,7 @@ impl Parser {
         return expression;
     }
 
-    fn factor<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    fn factor<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         let mut expression: Box<dyn Expr<T>> = self.unary::<T>();
 
         while self.match_::<T>(vec![TokenType::SLASH, TokenType::STAR]) {
@@ -104,7 +104,7 @@ impl Parser {
         return expression;
     }
 
-    fn unary<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    fn unary<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         if self.match_::<T>(vec![TokenType::BANG, TokenType::MINUS]) {
             let operator: Token = self.previous::<T>();
             let right: Box<dyn Expr<T>> = self.unary();
@@ -114,7 +114,7 @@ impl Parser {
         return self.primary();
     }
 
-    fn primary<T: 'static>(&mut self) -> Box<dyn Expr<T>> {
+    fn primary<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         if self.match_::<T>(vec![TokenType::FALSE]) {
             return Box::new(expr::Literal::new(Object::Boolean(false)));
         }

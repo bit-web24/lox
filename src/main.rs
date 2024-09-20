@@ -10,8 +10,10 @@ mod expr;
 mod stmt;
 mod parser;
 
+use expr::Expr;
 use scanner::Scanner;
 use token::Token;
+use parser::Parser;
 
 struct Lox {
     had_error: bool,
@@ -63,9 +65,13 @@ impl Lox {
     fn run(&self, source: String) -> Result<()> {
         let mut scanner = Scanner::new(source);
         let tokens: Vec<Token> = scanner.scan_tokens();
-        for token in tokens {
-            println!("{:?}", token);
-        }
+        // for token in tokens {
+        //     println!("{:?}", token);
+        // }
+
+        let mut parser_: Parser = parser::Parser::new(tokens);
+        let expression: Box<dyn Expr<()>> = parser_.expression::<()>();
+        println!("EXPRESSION: {:?}", expression);
         Ok(())
     }
 
