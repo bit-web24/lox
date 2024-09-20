@@ -1,5 +1,5 @@
-use crate::token::{token_type::TokenType, Token};
 use crate::object::Object;
+use crate::token::{token_type::TokenType, Token};
 
 pub struct Scanner {
     source: String,
@@ -240,7 +240,13 @@ impl Scanner {
             .get(self.start as usize..self.current as usize)
             .unwrap();
         let token_type = self.keyword(text);
-        self.add_token(token_type);
+        if [TokenType::TRUE, TokenType::FALSE].contains(&token_type) {
+            self.add_token_(token_type, Some(Object::Boolean(text == "true")));
+        } else if token_type == TokenType::NIL {
+            self.add_token_(token_type, Some(Object::Nil));
+        } else {
+            self.add_token(token_type);
+        }
     }
 
     fn keyword(&self, text: &str) -> TokenType {
