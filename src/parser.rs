@@ -145,10 +145,10 @@ impl Parser {
             self.advance::<T>();
             return;
         }
-        self.error::<T>(self.peek(), message);
+        self.error(self.peek(), message);
     }
 
-    fn error<T>(&self, token: &Token, message: &str) {
+    fn error(&self, token: &Token, message: &str) {
         if token.type_ == TokenType::EOF {
             self.report(token.line, " at end", message);
         } else {
