@@ -4,7 +4,7 @@ pub trait Expr<T> {
     fn accept(&self, visitor: &dyn Visitor<T>) -> T;
 }
 
-trait Visitor<T> {
+pub trait Visitor<T> {
     fn visit_assign_expr(&self, expr: &Assign<T>) -> T;
     fn visit_binary_expr(&self, expr: &Binary<T>) -> T;
     fn visit_call_expr(&self, expr: &Call<T>) -> T;
@@ -19,7 +19,7 @@ trait Visitor<T> {
     fn visit_variable_expr(&self, expr: &Variable) -> T;
 }
 
-struct Assign<T> {
+pub struct Assign<T> {
     name: Token,
     value: Box<dyn Expr<T>>,
 }
@@ -58,7 +58,7 @@ impl<T> Expr<T> for Binary<T> {
     }
 }
 
-struct Call<T> {
+pub struct Call<T> {
     callee: Box<dyn Expr<T>>,
     paren: Token,
     arguments: Vec<Box<dyn Expr<T>>>,
@@ -80,7 +80,7 @@ impl<T> Expr<T> for Call<T> {
     }
 }
 
-struct Get<T> {
+pub struct Get<T> {
     object: Box<dyn Expr<T>>,
     name: Token,
 }
@@ -129,7 +129,7 @@ impl<T> Expr<T> for Literal {
     }
 }
 
-struct Logical<T> {
+pub struct Logical<T> {
     left: Box<dyn Expr<T>>,
     operator: Token,
     right: Box<dyn Expr<T>>,
@@ -151,7 +151,7 @@ impl<T> Expr<T> for Logical<T> {
     }
 }
 
-struct Set<T> {
+pub struct Set<T> {
     object: Box<dyn Expr<T>>,
     name: Token,
     value: Box<dyn Expr<T>>,
@@ -173,7 +173,7 @@ impl<T> Expr<T> for Set<T> {
     }
 }
 
-struct Super {
+pub struct Super {
     keyword: Token,
     method: Token,
 }
@@ -190,7 +190,7 @@ impl<T> Expr<T> for Super {
     }
 }
 
-struct This {
+pub struct This {
     keyword: Token,
 }
 
