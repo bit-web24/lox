@@ -9,6 +9,7 @@ mod token;
 mod expr;
 mod stmt;
 mod parser;
+mod interpreter;
 
 use expr::Expr;
 use scanner::Scanner;
