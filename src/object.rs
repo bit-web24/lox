@@ -49,6 +49,7 @@ impl Add for Object {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Object::Number(n1), Object::Number(n2)) => Object::Number(n1 + n2),
+            (Object::String(s1), Object::String(s2)) => Object::String(format!("{}{}", s1, s2)),
             _ => Object::Nil,
         }
     }
