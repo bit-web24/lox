@@ -1,7 +1,7 @@
 use crate::{expr, object::Object, token::token_type::TokenType};
 use std::fmt::Debug;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Interpreter;
 
 impl Interpreter {
@@ -28,7 +28,20 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_binary_expr(&self, expr: &expr::Binary<Object>) -> Option<Object> {
-        todo!()
+        let left: Object = self.evaluate(expr.left.as_ref())?;
+        let right: Object = self.evaluate(expr.right.as_ref())?;
+
+        match expr.operator.type_ {
+            TokenType::MINUS => Some(left - right),
+            TokenType::SLASH => Some(left / right),
+            TokenType::STAR => Some(left * right),
+            TokenType::PLUS => Some(left + right),
+            TokenType::GREATER => Some(Object::Boolean(left > right)),
+            TokenType::GREATER_EQUAL => Some(Object::Boolean(left >= right)),
+            TokenType::LESS => Some(Object::Boolean(left < right)),
+            TokenType::LESS_EQUAL => Some(Object::Boolean(left <= right)),
+            _ => None,
+        }
     }
 
     fn visit_call_expr(&self, expr: &expr::Call<Object>) -> Option<Object> {

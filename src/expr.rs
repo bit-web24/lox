@@ -41,9 +41,9 @@ impl<T: Debug> Expr<T> for Assign<T> {
 
 #[derive(Debug)]
 pub struct Binary<T: Debug> {
-    left: Box<dyn Expr<T>>,
-    operator: Token,
-    right: Box<dyn Expr<T>>,
+    pub left: Box<dyn Expr<T>>,
+    pub operator: Token,
+    pub right: Box<dyn Expr<T>>,
 }
 
 impl<T: Debug> Binary<T> {
