@@ -10,6 +10,7 @@ mod expr;
 mod stmt;
 mod parser;
 mod interpreter;
+mod error;
 
 use expr::Expr;
 use scanner::Scanner;
