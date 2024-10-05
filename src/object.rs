@@ -8,6 +8,12 @@ pub enum Object {
     Nil,
 }
 
+impl Object {
+    pub fn is_nil(&self) -> bool {
+        self == &Self::Nil 
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -34,10 +40,8 @@ impl PartialEq for Object {
 impl PartialOrd for Object {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
-            (Object::String(s1), Object::String(s2)) => s1.partial_cmp(s2),
             (Object::Number(n1), Object::Number(n2)) => n1.partial_cmp(n2),
             (Object::Boolean(b1), Object::Boolean(b2)) => b1.partial_cmp(b2),
-            (Object::Nil, Object::Nil) => Some(std::cmp::Ordering::Equal),
             _ => None,
         }
     }

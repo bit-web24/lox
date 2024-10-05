@@ -1,13 +1,13 @@
 use crate::token::{token_type::TokenType, Token};
 
-struct Error {
+pub struct Error {
     error_type: Option<Box<dyn ErrorType>>,
     at_token: Option<Token>,
     message: Option<String>,
 }
 
 impl Error {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             error_type: None,
             at_token: None,
@@ -15,19 +15,31 @@ impl Error {
         }
     }
 
-    fn type_(&mut self, error_type: Box<dyn ErrorType>) {
-        self.error_type = Some(error_type);
+    pub fn type_(self, error_type: Box<dyn ErrorType>) -> Self {
+        Self {
+            error_type: Some(error_type),
+            at_token: self.at_token,
+            message: self.message,
+        }
     }
 
-    fn at_token(&mut self, location: Token) {
-        self.at_token = Some(location);
+    pub fn at_token(self, location: Token) -> Self {
+        Self {
+            at_token: Some(location),
+            error_type: self.error_type,
+            message: self.message,
+        }
     }
 
-    fn message(&mut self, message: String) {
-        self.message = Some(message);
+    pub fn message(self, message: String) -> Self {
+        Self {
+            message: Some(message),
+            error_type: self.error_type,
+            at_token: self.at_token,
+        }
     }
 
-    fn report(&self) {
+    pub fn report(&self) {
         if let Some(error_type) = &self.error_type {
             if let Some(token) = &self.at_token {
                 error_type.report(token.clone(), self.message.clone().unwrap());
@@ -36,7 +48,7 @@ impl Error {
     }
 }
 
-trait ErrorType {
+pub trait ErrorType {
     fn report(&self, token: Token, message: String);
     fn write(&self, error_type: &str, line: i64, where_: &str, message: String) {
         println!(
@@ -47,7 +59,7 @@ trait ErrorType {
 }
 
 #[derive(Debug)]
-struct ParseError;
+pub struct ParseError;
 
 impl ErrorType for ParseError {
     fn report(&self, token: Token, message: String) {
@@ -65,7 +77,7 @@ impl ErrorType for ParseError {
 }
 
 #[derive(Debug)]
-struct RuntimeError;
+pub struct RuntimeError;
 
 impl ErrorType for RuntimeError {
     fn report(&self, token: Token, message: String) {
