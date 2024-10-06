@@ -1,7 +1,4 @@
-use std::{
-    io::{Result, Write},
-    process::exit,
-};
+use std::{error::Error, io::Write, process::exit};
 
 mod error;
 mod expr;
@@ -21,14 +18,18 @@ use token::Token;
 
 struct Lox {
     had_error: bool,
+    had_runtime_error: bool,
 }
 
 impl Lox {
     pub fn new() -> Self {
-        Lox { had_error: false }
+        Lox {
+            had_error: false,
+            had_runtime_error: false,
+        }
     }
 
-    pub fn exec(&mut self, args: Vec<String>) -> Result<()> {
+    pub fn exec(&mut self, args: Vec<String>) -> Result<(), Box<dyn Error>> {
         if args.len() > 2 {
             println!("Usage: lox [script]");
             exit(64);
@@ -43,7 +44,7 @@ impl Lox {
         Ok(())
     }
 
-    fn run_file(&mut self, path: String) -> Result<()> {
+    fn run_file(&mut self, path: String) -> Result<(), Box<dyn Error>> {
         let contents = std::fs::read_to_string(path)?;
         self.run(contents)?;
         if self.had_error {
@@ -52,7 +53,7 @@ impl Lox {
         Ok(())
     }
 
-    fn run_prompt(&mut self) -> Result<()> {
+    fn run_prompt(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
             print!("lox> ");
             std::io::stdout().flush()?;
@@ -66,7 +67,7 @@ impl Lox {
         Ok(())
     }
 
-    fn run(&mut self, source: String) -> Result<()> {
+    fn run(&mut self, source: String) -> Result<(), Box<dyn Error>> {
         let mut scanner = Scanner::new(source);
         let tokens: Vec<Token> = scanner.scan_tokens();
 
@@ -74,9 +75,8 @@ impl Lox {
         let expression: Box<dyn Expr<Object>> = parser_.expression::<Object>();
         let interpreter = Interpreter::new();
         if let Err(error) = interpreter.evaluate(expression.as_ref()) {
-            self.had_error = true;
-            println!("{}", error);
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "error"));
+            self.had_runtime_error = true;
+            return Err(error);
         }
         Ok(())
     }
@@ -91,7 +91,7 @@ impl Lox {
     }
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<(), Box<dyn Error>> {
     let mut lox: Lox = Lox::new();
     let args: Vec<String> = std::env::args().collect();
     lox.exec(args)?;

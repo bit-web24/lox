@@ -1,24 +1,25 @@
 use std::fmt::Debug;
-use crate::error::Error;
+// use crate::error::LoxError as Error;
+use std::error::Error;
 use crate::{object::Object, token::Token};
 
 pub trait Expr<T: Debug>: Debug {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error>;
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>>;
 }
 
 pub trait Visitor<T: Debug> {
-    fn visit_assign_expr(&self, expr: &Assign<T>) -> Result<T, Error>;
-    fn visit_binary_expr(&self, expr: &Binary<T>) -> Result<T, Error>;
-    fn visit_call_expr(&self, expr: &Call<T>) -> Result<T, Error>;
-    fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Error>;
-    fn visit_group_expr(&self, expr: &Grouping<T>) -> Result<T, Error>;
-    fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Error>;
-    fn visit_logical_expr(&self, expr: &Logical<T>) -> Result<T, Error>;
-    fn visit_set_expr(&self, expr: &Set<T>) -> Result<T, Error>;
-    fn visit_super_expr(&self, expr: &Super) -> Result<T, Error>;
-    fn visit_this_expr(&self, expr: &This) -> Result<T, Error>;
-    fn visit_unary_expr(&self, expr: &Unary<T>) -> Result<T, Error>;
-    fn visit_variable_expr(&self, expr: &Variable) -> Result<T, Error>;
+    fn visit_assign_expr(&self, expr: &Assign<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_binary_expr(&self, expr: &Binary<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_call_expr(&self, expr: &Call<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_group_expr(&self, expr: &Grouping<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Box<dyn Error>>;
+    fn visit_logical_expr(&self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_set_expr(&self, expr: &Set<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_super_expr(&self, expr: &Super) -> Result<T, Box<dyn Error>>;
+    fn visit_this_expr(&self, expr: &This) -> Result<T, Box<dyn Error>>;
+    fn visit_unary_expr(&self, expr: &Unary<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_variable_expr(&self, expr: &Variable) -> Result<T, Box<dyn Error>>;
 }
 
 #[derive(Debug)]
@@ -34,7 +35,7 @@ impl<T: Debug> Assign<T> {
 }
 
 impl<T: Debug> Expr<T> for Assign<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_assign_expr(self)
     }
 }
@@ -57,7 +58,7 @@ impl<T: Debug> Binary<T> {
 }
 
 impl<T: Debug> Expr<T> for Binary<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_binary_expr(self)
     }
 }
@@ -80,7 +81,7 @@ impl<T: Debug> Call<T> {
 }
 
 impl<T: Debug> Expr<T> for Call<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_call_expr(self)
     }
 }
@@ -98,7 +99,7 @@ impl<T: Debug> Get<T> {
 }
 
 impl<T: Debug> Expr<T> for Get<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_get_expr(self)
     }
 }
@@ -115,7 +116,7 @@ impl<T: Debug> Grouping<T> {
 }
 
 impl<T: Debug> Expr<T> for Grouping<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_group_expr(self)
     }
 }
@@ -132,7 +133,7 @@ impl Literal {
 }
 
 impl<T: Debug> Expr<T> for Literal {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_literal_expr(self)
     }
 }
@@ -155,7 +156,7 @@ impl<T: Debug> Logical<T> {
 }
 
 impl<T: Debug> Expr<T> for Logical<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_logical_expr(self)
     }
 }
@@ -178,7 +179,7 @@ impl<T: Debug> Set<T> {
 }
 
 impl<T: Debug> Expr<T> for Set<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_set_expr(self)
     }
 }
@@ -196,7 +197,7 @@ impl Super {
 }
 
 impl<T: Debug> Expr<T> for Super {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_super_expr(self)
     }
 }
@@ -213,7 +214,7 @@ impl This {
 }
 
 impl<T: Debug> Expr<T> for This {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_this_expr(self)
     }
 }
@@ -231,7 +232,7 @@ impl<T: Debug> Unary<T> {
 }
 
 impl<T: Debug> Expr<T> for Unary<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_unary_expr(self)
     }
 }
@@ -248,7 +249,7 @@ impl Variable {
 }
 
 impl<T: Debug> Expr<T> for Variable {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Error> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_variable_expr(self)
     }
 }

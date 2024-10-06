@@ -1,20 +1,29 @@
+use std::error::Error;
 use std::fmt;
 
 use crate::token::{token_type::TokenType, Token};
 
-pub struct Error {
+pub struct LoxError {
     error_type: Option<Box<dyn ErrorType>>,
     at_token: Option<Token>,
     message: Option<String>,
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for LoxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.report())
     }
 }
 
-impl Error {
+impl fmt::Debug for LoxError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.report())
+    }
+}
+
+impl Error for LoxError {}
+
+impl LoxError {
     pub fn new() -> Self {
         Self {
             error_type: None,
@@ -52,9 +61,9 @@ impl Error {
             if let Some(token) = &self.at_token {
                 return error_type.report(token.clone(), self.message.clone().unwrap());
             }
-            panic!("Error: Token not found");
+            panic!("LoxError: Token not found");
         }
-        panic!("Error: ErrorType not found");
+        panic!("LoxError: ErrorType not found");
     }
 }
 
@@ -94,3 +103,4 @@ impl ErrorType for RuntimeError {
         self.write("RuntimeError", token.line, "", message)
     }
 }
+
