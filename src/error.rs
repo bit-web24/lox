@@ -1,10 +1,9 @@
+use crate::token::Token;
 use std::error::Error;
 use std::fmt;
 
-use crate::token::{token_type::TokenType, Token};
-
 pub struct LoxError {
-    error_type: Option<Box<dyn ErrorType>>,
+    error_type: Option<Box<dyn error_types::ErrorType>>,
     at_token: Option<Token>,
     message: Option<String>,
 }
@@ -32,7 +31,7 @@ impl LoxError {
         }
     }
 
-    pub fn type_(self, error_type: Box<dyn ErrorType>) -> Self {
+    pub fn type_(self, error_type: Box<dyn error_types::ErrorType>) -> Self {
         Self {
             error_type: Some(error_type),
             at_token: self.at_token,
@@ -67,40 +66,40 @@ impl LoxError {
     }
 }
 
-pub trait ErrorType {
-    fn report(&self, token: Token, message: String) -> String;
-    fn write(&self, error_type: &str, line: i64, where_: &str, message: String) -> String {
-        format!(
-            "{} [line {}] {}: {}",
-            error_type, line, where_, message
-        )
+pub mod error_types {
+    use crate::token::{token_type::TokenType, Token};
+
+    pub trait ErrorType {
+        fn report(&self, token: Token, message: String) -> String;
+        fn write(&self, error_type: &str, line: i64, where_: &str, message: String) -> String {
+            format!("{} [line {}] {}: {}", error_type, line, where_, message)
+        }
     }
-}
 
-#[derive(Debug)]
-pub struct ParseError;
+    #[derive(Debug)]
+    pub struct ParseError;
 
-impl ErrorType for ParseError {
-    fn report(&self, token: Token, message: String) -> String {
-        if token.type_ == TokenType::EOF {
-            self.write("ParseError", token.line, " at end", message)
-        } else {
-            self.write(
-                "ParseError",
-                token.line,
-                format!(" at '{}'", token.lexeme).as_str(),
-                message,
-            )
+    impl ErrorType for ParseError {
+        fn report(&self, token: Token, message: String) -> String {
+            if token.type_ == TokenType::EOF {
+                self.write("ParseError", token.line, " at end", message)
+            } else {
+                self.write(
+                    "ParseError",
+                    token.line,
+                    format!(" at '{}'", token.lexeme).as_str(),
+                    message,
+                )
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct RuntimeError;
+
+    impl ErrorType for RuntimeError {
+        fn report(&self, token: Token, message: String) -> String {
+            self.write("RuntimeError", token.line, "", message)
         }
     }
 }
-
-#[derive(Debug)]
-pub struct RuntimeError;
-
-impl ErrorType for RuntimeError {
-    fn report(&self, token: Token, message: String) -> String {
-        self.write("RuntimeError", token.line, "", message)
-    }
-}
-

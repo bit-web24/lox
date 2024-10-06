@@ -1,5 +1,5 @@
 use crate::{
-    error::{self, LoxError, ParseError, RuntimeError},
+    error::{error_types::RuntimeError, LoxError},
     expr,
     object::Object,
     token::{token_type::TokenType, Token},

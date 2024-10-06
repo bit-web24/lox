@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-// use crate::error::LoxError as Error;
 use std::error::Error;
 use crate::{object::Object, token::Token};
 
