@@ -3,19 +3,21 @@ use std::{
     process::exit,
 };
 
-mod object;
-mod scanner;
-mod token;
-mod expr;
-mod stmt;
-mod parser;
-mod interpreter;
 mod error;
+mod expr;
+mod interpreter;
+mod object;
+mod parser;
+mod scanner;
+mod stmt;
+mod token;
 
 use expr::Expr;
+use interpreter::Interpreter;
+use object::Object;
+use parser::Parser;
 use scanner::Scanner;
 use token::Token;
-use parser::Parser;
 
 struct Lox {
     had_error: bool,
@@ -41,7 +43,7 @@ impl Lox {
         Ok(())
     }
 
-    fn run_file(&self, path: String) -> Result<()> {
+    fn run_file(&mut self, path: String) -> Result<()> {
         let contents = std::fs::read_to_string(path)?;
         self.run(contents)?;
         if self.had_error {
@@ -64,16 +66,18 @@ impl Lox {
         Ok(())
     }
 
-    fn run(&self, source: String) -> Result<()> {
+    fn run(&mut self, source: String) -> Result<()> {
         let mut scanner = Scanner::new(source);
         let tokens: Vec<Token> = scanner.scan_tokens();
-        // for token in tokens {
-        //     println!("{:?}", token);
-        // }
 
         let mut parser_: Parser = parser::Parser::new(tokens);
-        let expression: Box<dyn Expr<()>> = parser_.expression::<()>();
-        println!("EXPRESSION: {:?}", expression);
+        let expression: Box<dyn Expr<Object>> = parser_.expression::<Object>();
+        let interpreter = Interpreter::new();
+        if let Err(error) = interpreter.evaluate(expression.as_ref()) {
+            self.had_error = true;
+            println!("{}", error);
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "error"));
+        }
         Ok(())
     }
 

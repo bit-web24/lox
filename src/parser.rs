@@ -137,7 +137,7 @@ impl Parser {
             return Box::new(expr::Grouping::new(expression));
         }
 
-        panic!("Expect expression.");
+        panic!("Expected expression.");
     }
 
     fn consume<T>(&mut self, type_: TokenType, message: &str) {

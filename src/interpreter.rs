@@ -2,7 +2,7 @@ use crate::{
     error::{self, Error, ParseError, RuntimeError},
     expr,
     object::Object,
-    token::token_type::TokenType,
+    token::{token_type::TokenType, Token},
 };
 use std::fmt::Debug;
 
@@ -10,8 +10,12 @@ use std::fmt::Debug;
 pub struct Interpreter;
 
 impl Interpreter {
-    fn evaluate(self, expr: &dyn expr::Expr<Object>) -> Result<Object, Error> {
+    pub fn evaluate(self, expr: &dyn expr::Expr<Object>) -> Result<Object, Error> {
         expr.accept(&self)
+    }
+
+    pub fn new() -> Self {
+        Self
     }
 
     fn is_truthy(object: &Object) -> bool {
@@ -20,6 +24,15 @@ impl Interpreter {
             Object::Boolean(b) => *b,
             _ => true,
         }
+    }
+
+    fn error(&self, message: &str, token: &Token) -> Error {
+        let mut err = Error::new();
+        err = err
+            .type_(Box::new(RuntimeError))
+            .at_token(token.to_owned())
+            .message(message.to_string());
+        err
     }
 }
 
@@ -36,27 +49,27 @@ impl expr::Visitor<Object> for Interpreter {
         let left = self.evaluate(expr.left.as_ref())?;
         let right = self.evaluate(expr.right.as_ref())?;
 
-        match (&left, &right) {
-            (Object::Number(_), Object::Number(_)) => (),
-            _ => {
-                let mut err = Error::new();
-                err = err
-                    .type_(Box::new(RuntimeError))
-                    .message("Operands must be numbers.".to_string())
-                    .at_token(expr.operator.to_owned());
-                return Err(err);
+        let check_number_operands = |v: Object| {
+            if Object::Nil == v {
+                return Err(self.error("Operands must be numbers.", &expr.operator));
             }
-        }
+            Ok(v)
+        };
 
         match expr.operator.type_ {
-            TokenType::MINUS => Ok(left - right),
-            TokenType::SLASH => Ok(left / right),
-            TokenType::STAR => Ok(left * right),
-            TokenType::PLUS => Ok(left + right),
-            TokenType::GREATER => Ok(Object::Boolean(left > right)),
-            TokenType::GREATER_EQUAL => Ok(Object::Boolean(left >= right)),
-            TokenType::LESS => Ok(Object::Boolean(left < right)),
-            TokenType::LESS_EQUAL => Ok(Object::Boolean(left <= right)),
+            TokenType::MINUS => check_number_operands(left - right),
+            TokenType::SLASH => check_number_operands(left / right),
+            TokenType::STAR => check_number_operands(left * right),
+            TokenType::PLUS => match (&left, &right) {
+                (Object::Number(_), Object::Number(_)) | (Object::String(_), Object::String(_)) => {
+                    Ok(left + right)
+                }
+                _ => Err(self.error("Operands must be two numbers or two strings.", &expr.operator)),
+            },
+            TokenType::GREATER => check_number_operands(Object::Boolean(left > right)),
+            TokenType::GREATER_EQUAL => check_number_operands(Object::Boolean(left >= right)),
+            TokenType::LESS => check_number_operands(Object::Boolean(left < right)),
+            TokenType::LESS_EQUAL => check_number_operands(Object::Boolean(left <= right)),
             _ => {
                 let mut err = Error::new();
                 err = err
