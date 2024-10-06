@@ -53,9 +53,24 @@ impl expr::Visitor<Object> for Interpreter {
         let left = self.evaluate(expr.left.as_ref())?;
         let right = self.evaluate(expr.right.as_ref())?;
 
+        let rhs = right.to_owned();
         let check_number_operands = |v: Object| {
-            if Object::Nil == v {
+            if v.is_nil() {
+                if rhs == Object::Number(0.0) {
+                    return Err(self.error("Can't divide by zero.", &expr.operator));
+                }
                 return Err(self.error("Operands must be numbers.", &expr.operator));
+            }
+
+            Ok(v)
+        };
+
+        let check_addition_operands = |v: Object| {
+            if v.is_nil() {
+                return Err(self.error(
+                    "Operands can be in pairs of:\n\t(String::String)\n\t(Number::Number)\n\t(String::Number)\n\t(Number::String)\n\t(Boolean::String) or\n\t(String::Boolean)",
+                    &expr.operator,
+                ));
             }
             Ok(v)
         };
@@ -64,15 +79,7 @@ impl expr::Visitor<Object> for Interpreter {
             TokenType::MINUS => check_number_operands(left - right),
             TokenType::SLASH => check_number_operands(left / right),
             TokenType::STAR => check_number_operands(left * right),
-            TokenType::PLUS => match (&left, &right) {
-                (Object::Number(_), Object::Number(_)) | (Object::String(_), Object::String(_)) => {
-                    Ok(left + right)
-                }
-                _ => Err(self.error(
-                    "Operands must be two numbers or two strings.",
-                    &expr.operator,
-                )),
-            },
+            TokenType::PLUS => check_addition_operands(left + right),
             TokenType::GREATER => check_number_operands(Object::Boolean(left > right)),
             TokenType::GREATER_EQUAL => check_number_operands(Object::Boolean(left >= right)),
             TokenType::LESS => check_number_operands(Object::Boolean(left < right)),

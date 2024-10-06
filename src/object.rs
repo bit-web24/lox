@@ -1,4 +1,7 @@
-use std::{fmt, ops::{Add, Div, Mul, Sub}};
+use std::{
+    fmt,
+    ops::{Add, Div, Mul, Sub},
+};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -52,6 +55,18 @@ impl Add for Object {
 
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
+            (Object::Number(n1), Object::String(n2)) => {
+                Object::String(n1.to_string() + n2.as_ref())
+            }
+            (Object::String(n1), Object::Number(n2)) => {
+                Object::String(n1 + n2.to_string().as_ref())
+            }
+            (Object::Boolean(n1), Object::String(n2)) => {
+                Object::String(n1.to_string() + n2.as_ref())
+            }
+            (Object::String(n1), Object::Boolean(n2)) => {
+                Object::String(n1 + n2.to_string().as_ref())
+            }
             (Object::Number(n1), Object::Number(n2)) => Object::Number(n1 + n2),
             (Object::String(s1), Object::String(s2)) => Object::String(format!("{}{}", s1, s2)),
             _ => Object::Nil,
@@ -75,6 +90,7 @@ impl Div for Object {
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
+            (Object::Number(_), Object::Number(0.0)) => Object::Nil,
             (Object::Number(n1), Object::Number(n2)) => Object::Number(n1 / n2),
             _ => Object::Nil,
         }

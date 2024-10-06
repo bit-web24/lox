@@ -49,6 +49,8 @@ impl Lox {
         self.run(contents)?;
         if self.had_error {
             exit(65);
+        } else if self.had_runtime_error {
+            exit(70)
         }
         Ok(())
     }
@@ -74,10 +76,12 @@ impl Lox {
         let mut parser_: Parser = parser::Parser::new(tokens);
         let expression: Box<dyn Expr<Object>> = parser_.expression::<Object>();
         let interpreter = Interpreter::new();
-        if let Err(error) = interpreter.evaluate(expression.as_ref()) {
+        let value = interpreter.evaluate(expression.as_ref());
+        if let Err(error) = value {
             self.had_runtime_error = true;
             return Err(error);
         }
+        println!("{}", value.unwrap());
         Ok(())
     }
 
