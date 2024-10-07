@@ -3,6 +3,7 @@ use std::{borrow::Borrow, fmt::Debug, vec};
 use crate::{
     expr::{self, Expr},
     object::Object,
+    stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
 
@@ -18,6 +19,37 @@ impl Parser {
 
     pub fn expression<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
         return self.equality::<T>();
+    }
+
+    pub fn statement<T: 'static + Debug>(&mut self) -> Box<dyn Stmt<T>> {
+        if self.match_::<T>(vec![TokenType::PRINT]) {
+            return self.print_stmt();
+        }
+
+        self.expression_stmt()
+    }
+
+    pub fn print_stmt<T: 'static + Debug>(&mut self) -> Box<dyn Stmt<T>> {
+        let value = self.expression::<T>();
+        self.consume::<T>(TokenType::SEMICOLON, "Expect ';' after value.");
+
+        Box::new(stmt::Print::new(value))
+    }
+
+    pub fn expression_stmt<T: 'static + Debug>(&mut self) -> Box<dyn Stmt<T>> {
+        let expr = self.expression::<T>();
+        self.consume::<T>(TokenType::SEMICOLON, "Expect ';' after expression.");
+
+        Box::new(stmt::Expression::new(expr))
+    }
+
+    pub fn parse<T: 'static + Debug>(&mut self) -> Vec<Box<dyn Stmt<T>>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement());
+        }
+
+        statements
     }
 
     fn equality<T: 'static + Debug>(&mut self) -> Box<dyn Expr<T>> {
