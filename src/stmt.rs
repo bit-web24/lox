@@ -160,11 +160,11 @@ impl<T: Debug> Stmt<T> for Return<T> {
 #[derive(Debug)]
 pub struct Var<T> {
     name: Token,
-    initializer: Box<dyn expr::Expr<T>>,
+    initializer: Option<Box<dyn expr::Expr<T>>>,
 }
 
 impl<T> Var<T> {
-    fn new(name: Token, initializer: Box<dyn Expr<T>>) -> Self {
+    pub fn new(name: Token, initializer: Option<Box<dyn Expr<T>>>) -> Self {
         Self { name, initializer }
     }
 }

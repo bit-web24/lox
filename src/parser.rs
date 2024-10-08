@@ -30,10 +30,18 @@ impl Parser {
         statement::expression(self)
     }
 
+    pub fn declaration<T: 'static + Debug>(&mut self) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        if self.match_::<T>(vec![TokenType::VAR]) {
+            return statement::var_declaration(self);
+        }
+
+        self.statement()
+    }
+
     pub fn parse<T: 'static + Debug>(&mut self) -> Result<Vec<Box<dyn Stmt<T>>>, Box<dyn Error>> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration()?);
         }
 
         Ok(statements)
@@ -77,10 +85,10 @@ impl Parser {
         self.tokens.get(self.current as usize - 1).unwrap().clone()
     }
 
-    fn consume<T>(&mut self, type_: TokenType, message: &str) -> Result<(), Box<dyn Error>> {
+    fn consume<T>(&mut self, type_: TokenType, message: &str) -> Result<&Token, Box<dyn Error>> {
         if self.check(type_) {
             self.advance::<T>();
-            return Ok(());
+            return Ok(self.peek());
         }
         Err(self.error(self.peek(), message))
     }
@@ -206,6 +214,10 @@ mod expression {
             )));
         }
 
+        if parser.match_::<T>(vec![TokenType::IDENTIFIER]) {
+            return Ok(Box::new(expr::Variable::new(parser.previous::<T>())));
+        }
+
         if parser.match_::<T>(vec![TokenType::LEFT_PAREN]) {
             let expression: Box<dyn Expr<T>> = parser.expression()?;
             parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after expression.")?;
@@ -221,6 +233,7 @@ mod statement {
     use crate::expr::Expr;
     use crate::stmt::{self, Stmt};
     use crate::token::token_type::TokenType;
+    use crate::token::Token;
     use std::error::Error;
     use std::fmt::Debug;
 
@@ -240,5 +253,25 @@ mod statement {
         parser.consume::<T>(TokenType::SEMICOLON, "Expect ';' after expression.")?;
 
         Ok(Box::new(stmt::Expression::new(expr)))
+    }
+
+    pub fn var_declaration<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        let name: Token = parser
+            .consume::<T>(TokenType::IDENTIFIER, "Expect variable name.")?
+            .to_owned();
+
+        let mut initializer: Option<Box<dyn Expr<T>>> = None;
+        if parser.match_::<T>(vec![TokenType::EQUAL]) {
+            initializer = Some(parser.expression()?);
+        }
+
+        parser.consume::<T>(
+            TokenType::SEMICOLON,
+            "Expect ';' after variable declaration.",
+        )?;
+
+        Ok(Box::new(stmt::Var::new(name, initializer)))
     }
 }
