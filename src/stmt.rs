@@ -1,22 +1,25 @@
 use crate::expr::{self, Expr};
 use crate::token::Token;
+use std::error::Error;
+use std::fmt::Debug;
 
-pub trait Stmt<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T;
+pub trait Stmt<T: Debug>: Debug {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>>;
 }
 
-pub trait Visitor<T> {
-    fn visit_block_stmt(&self, stmt: &Block<T>) -> T;
-    fn visit_class_stmt(&self, stmt: &Class<T>) -> T;
-    fn visit_expr_stmt(&self, stmt: &Expression<T>) -> T;
-    fn visit_func_stmt(&self, stmt: &Function<T>) -> T;
-    fn visit_if_stmt(&self, stmt: &If<T>) -> T;
-    fn visit_print_stmt(&self, stmt: &Print<T>) -> T;
-    fn visit_return_stmt(&self, stmt: &Return<T>) -> T;
-    fn visit_var_stmt(&self, stmt: &Var<T>) -> T;
-    fn visit_while_stmt(&self, stmt: &While<T>) -> T;
+pub trait Visitor<T: Debug> {
+    fn visit_block_stmt(&self, stmt: &Block<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_class_stmt(&self, stmt: &Class<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_expr_stmt(&self, stmt: &Expression<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_if_stmt(&self, stmt: &If<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_print_stmt(&self, stmt: &Print<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_var_stmt(&self, stmt: &Var<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_while_stmt(&self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
 }
 
+#[derive(Debug)]
 pub struct Block<T> {
     statements: Vec<Box<dyn Stmt<T>>>,
 }
@@ -27,12 +30,13 @@ impl<T> Block<T> {
     }
 }
 
-impl<T> Stmt<T> for Block<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Block<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_block_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct Class<T> {
     name: Token,
     superclass: expr::Variable,
@@ -49,28 +53,30 @@ impl<T> Class<T> {
     }
 }
 
-impl<T> Stmt<T> for Class<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Class<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_class_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct Expression<T> {
-    expression: Box<dyn expr::Expr<T>>,
+    pub expression: Box<dyn expr::Expr<T>>,
 }
 
 impl<T> Expression<T> {
-    fn new(expression: Box<dyn Expr<T>>) -> Self {
+    pub fn new(expression: Box<dyn Expr<T>>) -> Self {
         Self { expression }
     }
 }
 
-impl<T> Stmt<T> for Expression<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Expression<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_expr_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct Function<T> {
     name: Token,
     params: Vec<Token>,
@@ -83,12 +89,13 @@ impl<T> Function<T> {
     }
 }
 
-impl<T> Stmt<T> for Function<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Function<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_func_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct If<T> {
     condition: Box<dyn expr::Expr<T>>,
     then_branch: Box<dyn Stmt<T>>,
@@ -109,28 +116,30 @@ impl<T> If<T> {
     }
 }
 
-impl<T> Stmt<T> for If<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for If<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_if_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct Print<T> {
-    expression: Box<dyn expr::Expr<T>>,
+    pub expression: Box<dyn expr::Expr<T>>,
 }
 
 impl<T> Print<T> {
-    fn new(expression: Box<dyn expr::Expr<T>>) -> Self {
+    pub fn new(expression: Box<dyn expr::Expr<T>>) -> Self {
         Self { expression }
     }
 }
 
-impl<T> Stmt<T> for Print<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Print<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_print_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct Return<T> {
     keyword: Token,
     value: Box<dyn expr::Expr<T>>,
@@ -142,12 +151,13 @@ impl<T> Return<T> {
     }
 }
 
-impl<T> Stmt<T> for Return<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Return<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_return_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct Var<T> {
     name: Token,
     initializer: Box<dyn expr::Expr<T>>,
@@ -159,12 +169,13 @@ impl<T> Var<T> {
     }
 }
 
-impl<T> Stmt<T> for Var<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for Var<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_var_stmt(self);
     }
 }
 
+#[derive(Debug)]
 pub struct While<T> {
     condition: Box<dyn expr::Expr<T>>,
     body: Box<dyn Stmt<T>>,
@@ -176,8 +187,8 @@ impl<T> While<T> {
     }
 }
 
-impl<T> Stmt<T> for While<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> T {
+impl<T: Debug> Stmt<T> for While<T> {
+    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_while_stmt(self);
     }
 }
