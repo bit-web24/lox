@@ -2,6 +2,7 @@ use crate::{
     error::{error_types::RuntimeError, LoxError},
     expr,
     object::Object,
+    stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
 use std::error::Error;
@@ -28,6 +29,19 @@ impl Interpreter {
             Object::Boolean(b) => *b,
             _ => true,
         }
+    }
+
+    pub fn interpret(&self, statements: Vec<Box<dyn Stmt<Object>>>) -> Result<Object, Box<dyn Error>> {
+        for statement in statements {
+            self.execute(statement)?;
+        }
+
+        Ok(Object::Nil)
+    }
+
+    fn execute(&self, stmt: Box<dyn Stmt<Object>>) -> Result<(), Box<dyn Error>> {
+        stmt.accept(self)?;
+        Ok(())
     }
 
     fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
@@ -154,6 +168,47 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
+        todo!()
+    }
+}
+
+impl stmt::Visitor<Object> for Interpreter {
+    fn visit_block_stmt(&self, stmt: &stmt::Block<Object>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn visit_class_stmt(&self, stmt: &stmt::Class<Object>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn visit_expr_stmt(&self, stmt: &stmt::Expression<Object>) -> Result<(), Box<dyn Error>> {
+        self.evaluate(stmt.expression.as_ref())?;
+        Ok(())
+    }
+
+    fn visit_func_stmt(&self, stmt: &stmt::Function<Object>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn visit_if_stmt(&self, stmt: &stmt::If<Object>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn visit_print_stmt(&self, stmt: &stmt::Print<Object>) -> Result<(), Box<dyn Error>> {
+        let value = self.evaluate(stmt.expression.as_ref())?;
+        println!("{}", value);
+        Ok(())
+    }
+
+    fn visit_return_stmt(&self, stmt: &stmt::Return<Object>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn visit_var_stmt(&self, stmt: &stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
+        todo!()
+    }
+
+    fn visit_while_stmt(&self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 }

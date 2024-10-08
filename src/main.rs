@@ -75,14 +75,11 @@ impl Lox {
         let tokens: Vec<Token> = scanner.scan_tokens();
 
         let mut parser_: Parser = parser::Parser::new(tokens);
-        let expression: Box<dyn Expr<Object>> = parser_.expression::<Object>()?;
+        let statements = parser_.parse::<Object>()?;
+
         let interpreter = Interpreter::new();
-        let value = interpreter.evaluate(expression.as_ref());
-        if let Err(error) = value {
-            self.had_runtime_error = true;
-            return Err(error);
-        }
-        println!("{}", value.unwrap());
+        interpreter.interpret(statements)?;
+
         Ok(())
     }
 }

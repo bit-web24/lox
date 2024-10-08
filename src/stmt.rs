@@ -61,7 +61,7 @@ impl<T: Debug> Stmt<T> for Class<T> {
 
 #[derive(Debug)]
 pub struct Expression<T> {
-    expression: Box<dyn expr::Expr<T>>,
+    pub expression: Box<dyn expr::Expr<T>>,
 }
 
 impl<T> Expression<T> {
@@ -124,7 +124,7 @@ impl<T: Debug> Stmt<T> for If<T> {
 
 #[derive(Debug)]
 pub struct Print<T> {
-    expression: Box<dyn expr::Expr<T>>,
+    pub expression: Box<dyn expr::Expr<T>>,
 }
 
 impl<T> Print<T> {
