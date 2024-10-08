@@ -14,6 +14,7 @@ use interpreter::Interpreter;
 use object::Object;
 use parser::Parser;
 use scanner::Scanner;
+use stmt::Stmt;
 use token::Token;
 
 struct Lox {
@@ -74,7 +75,7 @@ impl Lox {
         let tokens: Vec<Token> = scanner.scan_tokens();
 
         let mut parser_: Parser = parser::Parser::new(tokens);
-        let expression: Box<dyn Expr<Object>> = parser_.expression::<Object>();
+        let expression: Box<dyn Expr<Object>> = parser_.expression::<Object>()?;
         let interpreter = Interpreter::new();
         let value = interpreter.evaluate(expression.as_ref());
         if let Err(error) = value {
@@ -83,15 +84,6 @@ impl Lox {
         }
         println!("{}", value.unwrap());
         Ok(())
-    }
-
-    fn error(&mut self, line: usize, message: String) {
-        self.report(line, "".to_string(), message);
-    }
-
-    fn report(&mut self, line: usize, where_: String, message: String) {
-        println!("[line {}] Error {}: {}", line, where_, message);
-        self.had_error = true;
     }
 }
 

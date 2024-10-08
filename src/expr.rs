@@ -1,6 +1,6 @@
-use std::fmt::Debug;
-use std::error::Error;
 use crate::{object::Object, token::Token};
+use std::error::Error;
+use std::fmt::Debug;
 
 pub trait Expr<T: Debug>: Debug {
     fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>>;
@@ -70,7 +70,7 @@ pub struct Call<T: Debug> {
 }
 
 impl<T: Debug> Call<T> {
-    fn new(callee: Box<dyn Expr<T>>, paren: Token, arguments: Vec<Box<dyn Expr<T>>>) -> Self {
+    pub fn new(callee: Box<dyn Expr<T>>, paren: Token, arguments: Vec<Box<dyn Expr<T>>>) -> Self {
         Self {
             callee,
             paren,
@@ -252,4 +252,3 @@ impl<T: Debug> Expr<T> for Variable {
         visitor.visit_variable_expr(self)
     }
 }
-
