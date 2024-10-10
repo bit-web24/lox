@@ -85,10 +85,10 @@ impl Parser {
         self.tokens.get(self.current as usize - 1).unwrap().clone()
     }
 
-    fn consume<T>(&mut self, type_: TokenType, message: &str) -> Result<&Token, Box<dyn Error>> {
+    fn consume<T>(&mut self, type_: TokenType, message: &str) -> Result<Token, Box<dyn Error>> {
         if self.check(type_) {
             self.advance::<T>();
-            return Ok(self.peek());
+            return Ok(self.previous::<T>());
         }
         Err(self.error(self.peek(), message))
     }

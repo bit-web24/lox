@@ -17,6 +17,42 @@ impl Object {
     }
 }
 
+impl Into<f64> for Object {
+    fn into(self) -> f64 {
+        match self {
+            Object::Number(n) => n,
+            _ => 0.0,
+        }
+    }
+}
+
+impl Into<bool> for Object {
+    fn into(self) -> bool {
+        match self {
+            Object::Boolean(b) => b,
+            _ => false,
+        }
+    }
+}
+
+impl Into<String> for Object {
+    fn into(self) -> String {
+        match self {
+            Object::String(s) => s,
+            _ => String::from(""),
+        }
+    }
+}
+
+impl Into<String> for &Object {
+    fn into(self) -> String {
+        match self {
+            Object::String(s) => s.to_string(),
+            _ => String::from(""),
+        }
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

@@ -238,7 +238,7 @@ impl<T: Debug> Expr<T> for Unary<T> {
 
 #[derive(Debug)]
 pub struct Variable {
-    name: Token,
+    pub name: Token,
 }
 
 impl Variable {

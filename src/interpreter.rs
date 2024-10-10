@@ -1,5 +1,10 @@
 use crate::{
-    env::Environment, error::{error_types::RuntimeError, LoxError}, expr, object::Object, stmt::{self, Stmt}, token::{token_type::TokenType, Token}
+    env::Environment,
+    error::{error_types::RuntimeError, LoxError},
+    expr,
+    object::Object,
+    stmt::{self, Stmt},
+    token::{token_type::TokenType, Token},
 };
 use std::error::Error;
 use std::fmt::Debug;
@@ -172,7 +177,8 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        let value = self.env.get(&expr.name)?;
+        Ok(value.to_owned())
     }
 }
 
@@ -214,7 +220,7 @@ impl stmt::Visitor<Object> for Interpreter {
             value = self.evaluate(stmt.initializer.as_ref().unwrap().as_ref())?;
         }
 
-        self.env.define(stmt.name.lexeme.as_str(), value);
+        self.env.define(&stmt.name, value)?;
         Ok(())
     }
 
