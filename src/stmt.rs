@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fmt::Debug;
 
 pub trait Stmt<T: Debug>: Debug {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>>;
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>>;
 }
 
 pub trait Visitor<T: Debug> {
@@ -15,7 +15,7 @@ pub trait Visitor<T: Debug> {
     fn visit_if_stmt(&self, stmt: &If<T>) -> Result<(), Box<dyn Error>>;
     fn visit_print_stmt(&self, stmt: &Print<T>) -> Result<(), Box<dyn Error>>;
     fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_var_stmt(&self, stmt: &Var<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_var_stmt(&mut self, stmt: &Var<T>) -> Result<(), Box<dyn Error>>;
     fn visit_while_stmt(&self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
 }
 
@@ -31,7 +31,7 @@ impl<T> Block<T> {
 }
 
 impl<T: Debug> Stmt<T> for Block<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_block_stmt(self);
     }
 }
@@ -54,7 +54,7 @@ impl<T> Class<T> {
 }
 
 impl<T: Debug> Stmt<T> for Class<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_class_stmt(self);
     }
 }
@@ -71,7 +71,7 @@ impl<T> Expression<T> {
 }
 
 impl<T: Debug> Stmt<T> for Expression<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_expr_stmt(self);
     }
 }
@@ -90,7 +90,7 @@ impl<T> Function<T> {
 }
 
 impl<T: Debug> Stmt<T> for Function<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_func_stmt(self);
     }
 }
@@ -117,7 +117,7 @@ impl<T> If<T> {
 }
 
 impl<T: Debug> Stmt<T> for If<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_if_stmt(self);
     }
 }
@@ -134,7 +134,7 @@ impl<T> Print<T> {
 }
 
 impl<T: Debug> Stmt<T> for Print<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_print_stmt(self);
     }
 }
@@ -152,15 +152,15 @@ impl<T> Return<T> {
 }
 
 impl<T: Debug> Stmt<T> for Return<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_return_stmt(self);
     }
 }
 
 #[derive(Debug)]
 pub struct Var<T> {
-    name: Token,
-    initializer: Option<Box<dyn expr::Expr<T>>>,
+    pub name: Token,
+    pub initializer: Option<Box<dyn expr::Expr<T>>>,
 }
 
 impl<T> Var<T> {
@@ -170,7 +170,7 @@ impl<T> Var<T> {
 }
 
 impl<T: Debug> Stmt<T> for Var<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_var_stmt(self);
     }
 }
@@ -188,7 +188,7 @@ impl<T> While<T> {
 }
 
 impl<T: Debug> Stmt<T> for While<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
         return visitor.visit_while_stmt(self);
     }
 }

@@ -1,26 +1,26 @@
 use crate::{
-    error::{error_types::RuntimeError, LoxError},
-    expr,
-    object::Object,
-    stmt::{self, Stmt},
-    token::{token_type::TokenType, Token},
+    env::Environment, error::{error_types::RuntimeError, LoxError}, expr, object::Object, stmt::{self, Stmt}, token::{token_type::TokenType, Token}
 };
 use std::error::Error;
 use std::fmt::Debug;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Interpreter;
+#[derive(Debug, Clone)]
+pub struct Interpreter {
+    pub env: Environment,
+}
 
 impl Interpreter {
     pub fn evaluate(
-        self,
+        &self,
         expr: &dyn expr::Expr<Object>,
     ) -> Result<Object, Box<dyn std::error::Error>> {
-        expr.accept(&self)
+        expr.accept(self)
     }
 
     pub fn new() -> Self {
-        Self
+        Self {
+            env: Environment::new(),
+        }
     }
 
     fn is_truthy(object: &Object) -> bool {
@@ -31,7 +31,10 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&self, statements: Vec<Box<dyn Stmt<Object>>>) -> Result<Object, Box<dyn Error>> {
+    pub fn interpret(
+        &mut self,
+        statements: Vec<Box<dyn Stmt<Object>>>,
+    ) -> Result<Object, Box<dyn Error>> {
         for statement in statements {
             self.execute(statement)?;
         }
@@ -39,7 +42,7 @@ impl Interpreter {
         Ok(Object::Nil)
     }
 
-    fn execute(&self, stmt: Box<dyn Stmt<Object>>) -> Result<(), Box<dyn Error>> {
+    fn execute(&mut self, mut stmt: Box<dyn Stmt<Object>>) -> Result<(), Box<dyn Error>> {
         stmt.accept(self)?;
         Ok(())
     }
@@ -72,8 +75,9 @@ impl expr::Visitor<Object> for Interpreter {
             if v.is_nil() {
                 if rhs == Object::Number(0.0) {
                     return Err(self.error("Can't divide by zero.", &expr.operator));
+                } else {
+                    return Err(self.error("Operands must be numbers.", &expr.operator));
                 }
-                return Err(self.error("Operands must be numbers.", &expr.operator));
             }
 
             Ok(v)
@@ -204,8 +208,14 @@ impl stmt::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_var_stmt(&self, stmt: &stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_var_stmt(&mut self, stmt: &stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
+        let mut value = Object::Nil;
+        if stmt.initializer.is_some() {
+            value = self.evaluate(stmt.initializer.as_ref().unwrap().as_ref())?;
+        }
+
+        self.env.define(stmt.name.lexeme.as_str(), value);
+        Ok(())
     }
 
     fn visit_while_stmt(&self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {

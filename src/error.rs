@@ -103,21 +103,3 @@ pub mod error_types {
         }
     }
 }
-
-/*  
-fn error(token: &Token, message: &str) {
-    if token.type_ == TokenType::EOF {
-        report(token.line, " at end", message);
-    } else {
-        report(
-            token.line,
-            format!(" at '{}'", token.lexeme).as_str(),
-            message,
-        );
-    }
-}
-
-fn report(line: i64, at: &str, msg: &str) {
-    panic!("[line {}] Error{}: {}", line, at, std::format!("{}", msg));
-}
-*/

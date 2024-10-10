@@ -8,6 +8,7 @@ mod parser;
 mod scanner;
 mod stmt;
 mod token;
+mod env;
 
 use expr::Expr;
 use interpreter::Interpreter;
@@ -16,6 +17,7 @@ use parser::Parser;
 use scanner::Scanner;
 use stmt::Stmt;
 use token::Token;
+use env::Environment;
 
 struct Lox {
     had_error: bool,
@@ -77,7 +79,7 @@ impl Lox {
         let mut parser_: Parser = parser::Parser::new(tokens);
         let statements = parser_.parse::<Object>()?;
 
-        let interpreter = Interpreter::new();
+        let mut interpreter = Interpreter::new();
         interpreter.interpret(statements)?;
 
         Ok(())
