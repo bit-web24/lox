@@ -13,7 +13,7 @@ pub enum Object {
 
 impl Object {
     pub fn is_nil(&self) -> bool {
-        self == &Self::Nil 
+        self == &Self::Nil
     }
 }
 

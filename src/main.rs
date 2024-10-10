@@ -1,5 +1,6 @@
 use std::{error::Error, io::Write, process::exit};
 
+mod env;
 mod error;
 mod expr;
 mod interpreter;
@@ -8,8 +9,8 @@ mod parser;
 mod scanner;
 mod stmt;
 mod token;
-mod env;
 
+use env::Environment;
 use expr::Expr;
 use interpreter::Interpreter;
 use object::Object;
@@ -17,7 +18,6 @@ use parser::Parser;
 use scanner::Scanner;
 use stmt::Stmt;
 use token::Token;
-use env::Environment;
 
 struct Lox {
     had_error: bool,
