@@ -10,6 +10,9 @@ mod scanner;
 mod stmt;
 mod token;
 
+#[cfg(test)]
+mod tests;
+
 use env::Environment;
 use expr::Expr;
 use interpreter::Interpreter;
