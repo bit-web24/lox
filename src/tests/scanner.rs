@@ -18,8 +18,8 @@ pub fn test_var() {
 pub fn test_string() {
     use crate::scanner::Scanner;
 
-    let source = r#""this is a string""#;
-    let mut scanner = Scanner::new(source.to_string());
+    let source = "\"this is a string\"".to_string();
+    let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 2);
 }
