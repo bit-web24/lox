@@ -10,12 +10,12 @@ pub trait Stmt<T: Debug>: Debug {
 pub trait Visitor<T: Debug> {
     fn visit_block_stmt(&self, stmt: &Block<T>) -> Result<(), Box<dyn Error>>;
     fn visit_class_stmt(&self, stmt: &Class<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_expr_stmt(&self, stmt: &Expression<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_expr_stmt(&mut self, stmt: &mut Expression<T>) -> Result<(), Box<dyn Error>>;
     fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
     fn visit_if_stmt(&self, stmt: &If<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_print_stmt(&self, stmt: &Print<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_print_stmt(&mut self, stmt: &mut Print<T>) -> Result<(), Box<dyn Error>>;
     fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_var_stmt(&mut self, stmt: &Var<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_var_stmt(&mut self, stmt: &mut Var<T>) -> Result<(), Box<dyn Error>>;
     fn visit_while_stmt(&self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
 }
 

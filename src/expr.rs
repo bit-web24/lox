@@ -1,41 +1,47 @@
 use crate::{object::Object, token::Token};
+use std::any::Any;
 use std::error::Error;
 use std::fmt::Debug;
 
 pub trait Expr<T: Debug>: Debug {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>>;
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>>;
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait Visitor<T: Debug> {
-    fn visit_assign_expr(&self, expr: &Assign<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_binary_expr(&self, expr: &Binary<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_assign_expr(&mut self, expr: &mut Assign<T>) -> Result<T, Box<dyn Error>>; // a = 30;
+    fn visit_binary_expr(&mut self, expr: &mut Binary<T>) -> Result<T, Box<dyn Error>>;
     fn visit_call_expr(&self, expr: &Call<T>) -> Result<T, Box<dyn Error>>;
     fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_group_expr(&self, expr: &Grouping<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_group_expr(&mut self, expr: &mut Grouping<T>) -> Result<T, Box<dyn Error>>;
     fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Box<dyn Error>>;
     fn visit_logical_expr(&self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
     fn visit_set_expr(&self, expr: &Set<T>) -> Result<T, Box<dyn Error>>;
     fn visit_super_expr(&self, expr: &Super) -> Result<T, Box<dyn Error>>;
     fn visit_this_expr(&self, expr: &This) -> Result<T, Box<dyn Error>>;
-    fn visit_unary_expr(&self, expr: &Unary<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_variable_expr(&self, expr: &Variable) -> Result<T, Box<dyn Error>>;
+    fn visit_unary_expr(&mut self, expr: &mut Unary<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_variable_expr(&self, expr: &Variable) -> Result<T, Box<dyn Error>>; // var a = 20;
 }
 
 #[derive(Debug)]
 pub struct Assign<T: Debug> {
-    name: Token,
+    pub name: Token,
     pub value: Box<dyn Expr<T>>,
 }
 
 impl<T: Debug> Assign<T> {
-    fn new(name: Token, value: Box<dyn Expr<T>>) -> Self {
+    pub fn new(name: Token, value: Box<dyn Expr<T>>) -> Self {
         Self { name, value }
     }
 }
 
-impl<T: Debug> Expr<T> for Assign<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Assign<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_assign_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -56,9 +62,13 @@ impl<T: Debug> Binary<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Binary<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Binary<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_binary_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -79,9 +89,13 @@ impl<T: Debug> Call<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Call<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Call<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_call_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -97,9 +111,13 @@ impl<T: Debug> Get<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Get<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Get<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_get_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -114,9 +132,13 @@ impl<T: Debug> Grouping<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Grouping<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Grouping<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_group_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -131,9 +153,13 @@ impl Literal {
     }
 }
 
-impl<T: Debug> Expr<T> for Literal {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Literal {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_literal_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -154,9 +180,13 @@ impl<T: Debug> Logical<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Logical<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Logical<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_logical_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -177,9 +207,13 @@ impl<T: Debug> Set<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Set<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Set<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_set_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -195,9 +229,13 @@ impl Super {
     }
 }
 
-impl<T: Debug> Expr<T> for Super {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Super {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_super_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -212,9 +250,13 @@ impl This {
     }
 }
 
-impl<T: Debug> Expr<T> for This {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for This {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_this_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -230,9 +272,13 @@ impl<T: Debug> Unary<T> {
     }
 }
 
-impl<T: Debug> Expr<T> for Unary<T> {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Unary<T> {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_unary_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -247,8 +293,12 @@ impl Variable {
     }
 }
 
-impl<T: Debug> Expr<T> for Variable {
-    fn accept(&self, visitor: &dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl<T: Debug + 'static> Expr<T> for Variable {
+    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
         visitor.visit_variable_expr(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

@@ -16,8 +16,8 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn evaluate(
-        &self,
-        expr: &dyn expr::Expr<Object>,
+        &mut self,
+        expr: &mut dyn expr::Expr<Object>,
     ) -> Result<Object, Box<dyn std::error::Error>> {
         expr.accept(self)
     }
@@ -67,13 +67,21 @@ impl expr::Visitor<Object> for Interpreter {
         Ok(expr.value.clone())
     }
 
-    fn visit_assign_expr(&self, expr: &expr::Assign<Object>) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_assign_expr(
+        &mut self,
+        expr: &mut expr::Assign<Object>,
+    ) -> Result<Object, Box<dyn Error>> {
+        let value = self.evaluate(expr)?;
+        self.env.assign(&expr.name, value.clone())?;
+        Ok(value)
     }
 
-    fn visit_binary_expr(&self, expr: &expr::Binary<Object>) -> Result<Object, Box<dyn Error>> {
-        let left = self.evaluate(expr.left.as_ref())?;
-        let right = self.evaluate(expr.right.as_ref())?;
+    fn visit_binary_expr(
+        &mut self,
+        expr: &mut expr::Binary<Object>,
+    ) -> Result<Object, Box<dyn Error>> {
+        let left = self.evaluate(expr.left.as_mut())?;
+        let right = self.evaluate(expr.right.as_mut())?;
 
         let rhs = right.to_owned();
         let check_number_operands = |v: Object| {
@@ -129,8 +137,11 @@ impl expr::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_group_expr(&self, expr: &expr::Grouping<Object>) -> Result<Object, Box<dyn Error>> {
-        self.clone().evaluate(expr.expression.as_ref())
+    fn visit_group_expr(
+        &mut self,
+        expr: &mut expr::Grouping<Object>,
+    ) -> Result<Object, Box<dyn Error>> {
+        self.evaluate(expr.expression.as_mut())
     }
 
     fn visit_logical_expr(&self, expr: &expr::Logical<Object>) -> Result<Object, Box<dyn Error>> {
@@ -149,8 +160,11 @@ impl expr::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_unary_expr(&self, expr: &expr::Unary<Object>) -> Result<Object, Box<dyn Error>> {
-        let right = self.evaluate(expr.right.as_ref())?;
+    fn visit_unary_expr(
+        &mut self,
+        expr: &mut expr::Unary<Object>,
+    ) -> Result<Object, Box<dyn Error>> {
+        let right = self.evaluate(expr.right.as_mut())?;
 
         match expr.operator.type_ {
             TokenType::MINUS => match right {
@@ -191,8 +205,11 @@ impl stmt::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_expr_stmt(&self, stmt: &stmt::Expression<Object>) -> Result<(), Box<dyn Error>> {
-        self.evaluate(stmt.expression.as_ref())?;
+    fn visit_expr_stmt(
+        &mut self,
+        stmt: &mut stmt::Expression<Object>,
+    ) -> Result<(), Box<dyn Error>> {
+        self.evaluate(stmt.expression.as_mut())?;
         Ok(())
     }
 
@@ -204,8 +221,8 @@ impl stmt::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_print_stmt(&self, stmt: &stmt::Print<Object>) -> Result<(), Box<dyn Error>> {
-        let value = self.evaluate(stmt.expression.as_ref())?;
+    fn visit_print_stmt(&mut self, stmt: &mut stmt::Print<Object>) -> Result<(), Box<dyn Error>> {
+        let value = self.evaluate(stmt.expression.as_mut())?;
         println!("{}", value);
         Ok(())
     }
@@ -214,10 +231,10 @@ impl stmt::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_var_stmt(&mut self, stmt: &stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_var_stmt(&mut self, stmt: &mut stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
         let mut value = Object::Nil;
         if stmt.initializer.is_some() {
-            value = self.evaluate(stmt.initializer.as_ref().unwrap().as_ref())?;
+            value = self.evaluate(stmt.initializer.as_mut().unwrap().as_mut())?;
         }
 
         self.env.define(&stmt.name, value)?;

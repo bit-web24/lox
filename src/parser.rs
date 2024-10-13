@@ -19,7 +19,7 @@ impl Parser {
     }
 
     pub fn expression<T: 'static + Debug>(&mut self) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
-        return expression::equality::<T>(self);
+        return expression::assignment::<T>(self);
     }
 
     pub fn statement<T: 'static + Debug>(&mut self) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
@@ -132,6 +132,25 @@ mod expression {
     use crate::token::{token_type::TokenType, Token};
     use std::error::Error;
     use std::fmt::Debug;
+
+    pub fn assignment<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let exp = equality::<T>(parser)?;
+
+        if parser.match_::<T>(vec![TokenType::EQUAL]) {
+            let equals: Token = parser.previous::<T>();
+            let value: Box<dyn Expr<T>> = assignment(parser)?;
+
+            if let Some(expr::Variable { name }) = exp.as_any().downcast_ref::<expr::Variable>() {
+                return Ok(Box::new(expr::Assign::new(name.clone(), value)));
+            }
+
+            return Err(parser.error(&equals, "Invalid assignment target."));
+        }
+
+        Ok(exp)
+    }
 
     pub fn equality<T: 'static + Debug>(
         parser: &mut Parser,

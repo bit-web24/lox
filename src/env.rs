@@ -1,9 +1,10 @@
+use core::error;
 use std::{collections::HashMap, error::Error, fmt};
 
 use crate::{
     error::{error_types::RuntimeError, LoxError},
     object::Object,
-    token::Token,
+    token::{self, Token},
 };
 
 #[derive(Debug, Clone)]
@@ -23,7 +24,7 @@ impl Environment {
             return Ok(value);
         }
 
-        Err(Environment::error(
+        Err(Self::error(
             format!("Undefined variable '{}'.", token.lexeme),
             token.to_owned(),
         ))
@@ -31,7 +32,7 @@ impl Environment {
 
     pub fn define(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {
         if self.values.contains_key(token.lexeme.as_str()) {
-            return Err(Environment::error(
+            return Err(Self::error(
                 "variable already defined.".into(),
                 token.to_owned(),
             ));
@@ -39,6 +40,18 @@ impl Environment {
 
         self.values.insert(token.lexeme.to_owned(), value);
         Ok(())
+    }
+
+    pub fn assign(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {
+        if self.values.contains_key(token.lexeme.as_str()) {
+            self.values.insert(token.lexeme.to_owned(), value);
+            return Ok(());
+        }
+
+        Err(Self::error(
+            format!("Undefined variable '{}'.", value.to_string()),
+            token.to_owned(),
+        ))
     }
 
     fn error(message: String, token: Token) -> Box<dyn Error> {
