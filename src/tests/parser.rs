@@ -1,6 +1,4 @@
-use crate::error;
-use crate::interpreter::Interpreter;
-use crate::{object::Object, scanner};
+use crate::{error, interpreter, object, parser, scanner};
 
 #[test]
 fn test_print_statement() {
@@ -9,11 +7,11 @@ fn test_print_statement() {
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 3 + 1); // 'print', '20', ';' + EOF
 
-    let mut parser = crate::parser::Parser::new(tokens);
-    let statements = parser.parse::<Object>().unwrap();
+    let mut parser = parser::Parser::new(tokens);
+    let statements = parser.parse::<object::Object>().unwrap();
     assert_eq!(statements.len(), 1);
 
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = interpreter::Interpreter::new();
     let result = interpreter.interpret(statements);
 
     assert!(result.is_ok());
@@ -26,11 +24,11 @@ fn test_assignment_expression() {
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 5); // 'a', '=', '20', ';' + EOF
 
-    let mut parser = crate::parser::Parser::new(tokens);
-    let statements = parser.parse::<Object>().unwrap();
+    let mut parser = parser::Parser::new(tokens);
+    let statements = parser.parse::<object::Object>().unwrap();
     assert_eq!(statements.len(), 1);
 
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = interpreter::Interpreter::new();
     let result = interpreter.interpret(statements);
 
     assert!(result.is_err());
@@ -54,11 +52,11 @@ fn test_variable_declaration_and_assignment() {
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 10); // 'var', 'a', '=', '20', ';', 'a', '=', 'bittu', ';' + EOF
 
-    let mut parser = crate::parser::Parser::new(tokens);
-    let statements = parser.parse::<Object>().unwrap();
+    let mut parser = parser::Parser::new(tokens);
+    let statements = parser.parse::<object::Object>().unwrap();
     assert_eq!(statements.len(), 2);
 
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = interpreter::Interpreter::new();
     let result = interpreter.interpret(statements);
 
     assert!(result.is_ok());

@@ -1,4 +1,4 @@
-use crate::scanner::Scanner;
+use crate::scanner;
 
 #[test]
 pub fn test_variable_declaration() {
@@ -9,7 +9,7 @@ pub fn test_variable_declaration() {
         "#
     .to_string();
 
-    let mut scanner = Scanner::new(source);
+    let mut scanner = scanner::Scanner::new(source);
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 18);
 }
@@ -18,17 +18,15 @@ pub fn test_variable_declaration() {
 pub fn test_variable_assignment() {
     let source = r#"a = 456;"#.to_string();
 
-    let mut scanner = Scanner::new(source);
+    let mut scanner = scanner::Scanner::new(source);
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 5);
 }
 
 #[test]
 pub fn test_string() {
-    use crate::scanner::Scanner;
-
     let source = "\"this is a string\"".to_string();
-    let mut scanner = Scanner::new(source);
+    let mut scanner = scanner::Scanner::new(source);
     let tokens = scanner.scan_tokens();
     assert_eq!(tokens.len(), 2);
 }
