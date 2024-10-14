@@ -1,10 +1,9 @@
 use std::{borrow::Borrow, error::Error, fmt::Debug, vec};
 
 use crate::{
-    error::{self, error_types::ParseError, LoxError},
-    expr::{self, Expr},
-    object::Object,
-    stmt::{self, Stmt},
+    error::{error_types::ParseError, LoxError},
+    expr::{Expr},
+    stmt::{Stmt},
     token::{token_type::TokenType, Token},
 };
 

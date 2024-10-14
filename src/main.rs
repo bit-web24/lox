@@ -13,13 +13,10 @@ mod token;
 #[cfg(test)]
 mod tests;
 
-use env::Environment;
-use expr::Expr;
 use interpreter::Interpreter;
 use object::Object;
 use parser::Parser;
 use scanner::Scanner;
-use stmt::Stmt;
 use token::Token;
 
 struct Lox {

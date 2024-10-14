@@ -1,10 +1,9 @@
-use core::error;
-use std::{collections::HashMap, error::Error, fmt};
+use std::{collections::HashMap, error::Error};
 
 use crate::{
     error::{error_types::RuntimeError, LoxError},
     object::Object,
-    token::{self, Token},
+    token::{Token},
 };
 
 #[derive(Debug, Clone)]
