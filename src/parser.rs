@@ -2,8 +2,8 @@ use std::{borrow::Borrow, error::Error, fmt::Debug, vec};
 
 use crate::{
     error::{error_types::ParseError, LoxError},
-    expr::{Expr},
-    stmt::{Stmt},
+    expr::Expr,
+    stmt::Stmt,
     token::{token_type::TokenType, Token},
 };
 
@@ -139,7 +139,7 @@ mod expression {
 
         if parser.match_::<T>(vec![TokenType::EQUAL]) {
             let equals: Token = parser.previous::<T>();
-            let value: Box<dyn Expr<T>> = assignment(parser)?;
+            let value: Box<dyn Expr<T>> = assignment::<T>(parser)?;
 
             if let Some(expr::Variable { name }) = exp.as_any().downcast_ref::<expr::Variable>() {
                 return Ok(Box::new(expr::Assign::new(name.clone(), value)));
