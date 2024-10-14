@@ -71,7 +71,7 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Assign<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let value = self.evaluate(expr)?;
+        let value = self.evaluate(expr.value.as_mut())?;
         self.env.assign(&expr.name, value.clone())?;
         Ok(value)
     }

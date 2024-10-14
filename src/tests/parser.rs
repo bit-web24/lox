@@ -1,8 +1,9 @@
+use crate::error;
 use crate::interpreter::Interpreter;
 use crate::{object::Object, scanner};
 
 #[test]
-fn print() {
+fn test_print_statement() {
     let source = "print 20;".to_string();
     let mut scanner = scanner::Scanner::new(source);
     let tokens = scanner.scan_tokens();
@@ -13,7 +14,52 @@ fn print() {
     assert_eq!(statements.len(), 1);
 
     let mut interpreter = Interpreter::new();
-    interpreter.interpret(statements).unwrap();
+    let result = interpreter.interpret(statements);
 
-    // Capture stdout for assertion.
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_assignment_expression() {
+    let source = r#"a = 20;"#.to_string();
+    let mut scanner = scanner::Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+    assert_eq!(tokens.len(), 5); // 'a', '=', '20', ';' + EOF
+
+    let mut parser = crate::parser::Parser::new(tokens);
+    let statements = parser.parse::<Object>().unwrap();
+    assert_eq!(statements.len(), 1);
+
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.interpret(statements);
+
+    assert!(result.is_err());
+    assert_eq!(
+        result
+            .unwrap_err()
+            .downcast::<error::LoxError>()
+            .unwrap()
+            .to_string(),
+        "RuntimeError [line 1] : Undefined variable '20'."
+    );
+}
+
+#[test]
+fn test_variable_declaration_and_assignment() {
+    let source = r#"var a = 20;
+    a = "bittu";"#
+        .to_string();
+
+    let mut scanner = scanner::Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+    assert_eq!(tokens.len(), 10); // 'var', 'a', '=', '20', ';', 'a', '=', 'bittu', ';' + EOF
+
+    let mut parser = crate::parser::Parser::new(tokens);
+    let statements = parser.parse::<Object>().unwrap();
+    assert_eq!(statements.len(), 2);
+
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.interpret(statements);
+
+    assert!(result.is_ok());
 }
