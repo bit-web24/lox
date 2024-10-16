@@ -3,24 +3,37 @@ use std::{collections::HashMap, error::Error};
 use crate::{
     error::{error_types::RuntimeError, LoxError},
     object::Object,
-    token::{Token},
+    token::Token,
 };
 
 #[derive(Debug, Clone)]
 pub struct Environment {
     values: HashMap<String, Object>,
+    enclosing: Option<Box<Environment>>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Self {
             values: HashMap::new(),
+            enclosing: None,
+        }
+    }
+
+    pub fn from(enclosing: Box<Environment>) -> Self {
+        Self {
+            values: HashMap::new(),
+            enclosing: Some(enclosing),
         }
     }
 
     pub fn get(&self, token: &Token) -> Result<&Object, Box<dyn Error>> {
         if let Some(value) = self.values.get(token.lexeme.as_str()) {
             return Ok(value);
+        }
+
+        if let Some(encoding) = self.enclosing.as_ref() {
+            return encoding.get(token);
         }
 
         Err(Self::error(
@@ -35,6 +48,11 @@ impl Environment {
                 "variable already defined.".into(),
                 token.to_owned(),
             ));
+        }
+
+        if let Some(enclosing) = self.enclosing.as_mut() {
+            enclosing.define(token, value)?;
+            return Ok(());
         }
 
         self.values.insert(token.lexeme.to_owned(), value);
