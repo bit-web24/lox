@@ -3,7 +3,7 @@ use std::{borrow::Borrow, error::Error, fmt::Debug, vec};
 use crate::{
     error::{error_types::ParseError, LoxError},
     expr::Expr,
-    stmt::Stmt,
+    stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
 
@@ -24,6 +24,8 @@ impl Parser {
     pub fn statement<T: 'static + Debug>(&mut self) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
         if self.match_::<T>(vec![TokenType::PRINT]) {
             return statement::print(self);
+        } else if self.match_::<T>(vec![TokenType::LEFT_BRACE]) {
+            return Ok(Box::new(stmt::Block::new(statement::block(self)?)));
         }
 
         statement::expression(self)
@@ -252,8 +254,10 @@ mod statement {
     use crate::stmt::{self, Stmt};
     use crate::token::token_type::TokenType;
     use crate::token::Token;
+    use std::cell::RefCell;
     use std::error::Error;
     use std::fmt::Debug;
+    use std::rc::Rc;
 
     pub fn print<T: 'static + Debug>(
         parser: &mut Parser,
@@ -291,5 +295,19 @@ mod statement {
         )?;
 
         Ok(Box::new(stmt::Var::new(name, initializer)))
+    }
+
+    pub fn block<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Vec<Rc<RefCell<Box<dyn stmt::Stmt<T>>>>>, Box<dyn Error>> {
+        let mut statements: Vec<Rc<RefCell<Box<dyn stmt::Stmt<T>>>>> = Vec::new();
+
+        while !parser.match_::<T>(vec![TokenType::RIGHT_BRACE]) && !parser.is_at_end() {
+            statements.push(Rc::new(RefCell::new(parser.declaration()?)));
+        }
+
+        parser.consume::<T>(TokenType::RIGHT_BRACE, "Expect '}' after block.")?;
+
+        Ok(statements)
     }
 }

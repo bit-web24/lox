@@ -6,12 +6,11 @@ use crate::{
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
-use std::error::Error;
-use std::fmt::Debug;
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
-    pub env: Environment,
+    pub env: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
@@ -24,7 +23,7 @@ impl Interpreter {
 
     pub fn new() -> Self {
         Self {
-            env: Environment::new(),
+            env: Rc::new(RefCell::new(Environment::new())),
         }
     }
 
@@ -40,15 +39,32 @@ impl Interpreter {
         &mut self,
         statements: Vec<Box<dyn Stmt<Object>>>,
     ) -> Result<Object, Box<dyn Error>> {
+        let statements = statements;
+
         for statement in statements {
-            self.execute(statement)?;
+            self.execute(Rc::new(RefCell::new(statement)))?;
         }
 
         Ok(Object::Nil)
     }
+    fn execute(&mut self, stmt: Rc<RefCell<Box<dyn Stmt<Object>>>>) -> Result<(), Box<dyn Error>> {
+        stmt.borrow_mut().accept(self)?;
+        Ok(())
+    }
 
-    fn execute(&mut self, mut stmt: Box<dyn Stmt<Object>>) -> Result<(), Box<dyn Error>> {
-        stmt.accept(self)?;
+    fn execute_block(
+        &mut self,
+        statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
+        environment: Rc<RefCell<Environment>>,
+    ) -> Result<(), Box<dyn Error>> {
+        let previous = self.env.clone();
+        self.env = environment.clone();
+
+        for statement in statements {
+            self.execute(statement)?;
+        }
+
+        self.env = previous;
         Ok(())
     }
 
@@ -72,7 +88,7 @@ impl expr::Visitor<Object> for Interpreter {
         expr: &mut expr::Assign<Object>,
     ) -> Result<Object, Box<dyn Error>> {
         let value = self.evaluate(expr.value.as_mut())?;
-        self.env.assign(&expr.name, value.clone())?;
+        self.env.borrow_mut().assign(&expr.name, value.clone())?;
         Ok(value)
     }
 
@@ -191,14 +207,18 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        let value = self.env.get(&expr.name)?;
-        Ok(value.to_owned())
+        let value = self.env.borrow().get(&expr.name)?;
+        Ok(value)
     }
 }
 
 impl stmt::Visitor<Object> for Interpreter {
-    fn visit_block_stmt(&self, stmt: &stmt::Block<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_block_stmt(&mut self, stmt: &stmt::Block<Object>) -> Result<(), Box<dyn Error>> {
+        self.execute_block(
+            stmt.statements.clone(),
+            Rc::new(RefCell::new(Environment::from(self.env.clone()))),
+        )?;
+        Ok(())
     }
 
     fn visit_class_stmt(&self, stmt: &stmt::Class<Object>) -> Result<(), Box<dyn Error>> {
@@ -237,7 +257,7 @@ impl stmt::Visitor<Object> for Interpreter {
             value = self.evaluate(stmt.initializer.as_mut().unwrap().as_mut())?;
         }
 
-        self.env.define(&stmt.name, value)?;
+        self.env.borrow_mut().define(&stmt.name, value)?;
         Ok(())
     }
 
