@@ -43,20 +43,15 @@ impl Environment {
     }
 
     pub fn define(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {
-        if self.values.contains_key(token.lexeme.as_str()) {
-            return Err(Self::error(
-                "variable already defined.".into(),
-                token.to_owned(),
-            ));
-        }
-
-        if let Some(enclosing) = &self.enclosing {
-            enclosing.borrow_mut().define(token, value)?;
+        if !self.values.contains_key(token.lexeme.as_str()) {
+            self.values.insert(token.lexeme.to_owned(), value);
             return Ok(());
         }
 
-        self.values.insert(token.lexeme.to_owned(), value);
-        Ok(())
+        Err(Self::error(
+            "variable already defined.".into(),
+            token.to_owned(),
+        ))
     }
 
     pub fn assign(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {

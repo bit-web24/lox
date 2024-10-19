@@ -306,8 +306,6 @@ mod statement {
             statements.push(Rc::new(RefCell::new(parser.declaration()?)));
         }
 
-        parser.consume::<T>(TokenType::RIGHT_BRACE, "Expect '}' after block.")?;
-
         Ok(statements)
     }
 }
