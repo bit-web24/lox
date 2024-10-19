@@ -1,14 +1,16 @@
 use crate::expr::{self, Expr};
 use crate::token::Token;
+use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 pub trait Stmt<T: Debug>: Debug {
     fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>>;
 }
 
 pub trait Visitor<T: Debug> {
-    fn visit_block_stmt(&self, stmt: &Block<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_block_stmt(&mut self, stmt: &Block<T>) -> Result<(), Box<dyn Error>>;
     fn visit_class_stmt(&self, stmt: &Class<T>) -> Result<(), Box<dyn Error>>;
     fn visit_expr_stmt(&mut self, stmt: &mut Expression<T>) -> Result<(), Box<dyn Error>>;
     fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
@@ -21,12 +23,14 @@ pub trait Visitor<T: Debug> {
 
 #[derive(Debug)]
 pub struct Block<T> {
-    statements: Vec<Box<dyn Stmt<T>>>,
+    pub statements: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>,
 }
 
 impl<T> Block<T> {
-    fn new(statements: Vec<Box<dyn Stmt<T>>>) -> Self {
-        Self { statements }
+    pub fn new(statements: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>) -> Self {
+        Self {
+            statements: statements,
+        }
     }
 }
 
