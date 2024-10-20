@@ -26,6 +26,12 @@ impl Parser {
             return statement::print(self);
         } else if self.match_::<T>(vec![TokenType::LEFT_BRACE]) {
             return Ok(Box::new(stmt::Block::new(statement::block(self)?)));
+        } else if self.match_::<T>(vec![TokenType::IF]) {
+            return statement::if_statement(self);
+        } else if self.match_::<T>(vec![TokenType::WHILE]) {
+            return statement::while_statement(self);
+        } else if self.match_::<T>(vec![TokenType::FOR]) {
+            return statement::for_statement(self);
         }
 
         statement::expression(self)
@@ -137,7 +143,7 @@ mod expression {
     pub fn assignment<T: 'static + Debug>(
         parser: &mut Parser,
     ) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
-        let exp = equality::<T>(parser)?;
+        let exp = or::<T>(parser)?;
 
         if parser.match_::<T>(vec![TokenType::EQUAL]) {
             let equals: Token = parser.previous::<T>();
@@ -246,11 +252,35 @@ mod expression {
 
         panic!("Expected expression.");
     }
+
+    fn or<T: 'static + Debug>(parser: &mut Parser) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let mut expression: Box<dyn Expr<T>> = and::<T>(parser)?;
+
+        while parser.match_::<T>(vec![TokenType::OR]) {
+            let operator: Token = parser.previous::<T>();
+            let right: Box<dyn Expr<T>> = and::<T>(parser)?;
+            expression = Box::new(expr::Logical::new(expression, operator, right));
+        }
+
+        Ok(expression)
+    }
+
+    fn and<T: 'static + Debug>(parser: &mut Parser) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let mut expression: Box<dyn Expr<T>> = equality::<T>(parser)?;
+
+        while parser.match_::<T>(vec![TokenType::AND]) {
+            let operator: Token = parser.previous::<T>();
+            let right: Box<dyn Expr<T>> = equality::<T>(parser)?;
+            expression = Box::new(expr::Logical::new(expression, operator, right));
+        }
+
+        Ok(expression)
+    }
 }
 
 mod statement {
     use super::Parser;
-    use crate::expr::Expr;
+    use crate::expr::{self, Expr};
     use crate::stmt::{self, Stmt};
     use crate::token::token_type::TokenType;
     use crate::token::Token;
@@ -307,5 +337,88 @@ mod statement {
         }
 
         Ok(statements)
+    }
+
+    pub fn if_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after if.")?;
+        let condition: Box<dyn Expr<T>> = parser.expression()?;
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")?;
+        let then_branch: Box<dyn Stmt<T>> = parser.statement()?;
+        let else_branch: Option<Box<dyn Stmt<T>>> = if parser.match_::<T>(vec![TokenType::ELSE]) {
+            Some(parser.statement()?)
+        } else {
+            None
+        };
+        Ok(Box::new(stmt::If::new(condition, then_branch, else_branch)))
+    }
+
+    pub fn while_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after if.")?;
+        let condition: Box<dyn Expr<T>> = parser.expression()?;
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")?;
+        let body: Box<dyn Stmt<T>> = parser.statement()?;
+
+        Ok(Box::new(stmt::While::new(condition, body)))
+    }
+
+    pub fn for_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after for.")?;
+
+        let initializer: Option<Box<dyn Stmt<T>>> =
+            if parser.match_::<T>(vec![TokenType::SEMICOLON]) {
+                None
+            } else if parser.match_::<T>(vec![TokenType::VAR]) {
+                Some(self::var_declaration(parser)?)
+            } else {
+                Some(self::expression(parser)?)
+            };
+
+        let mut condition: Option<Box<dyn Expr<T>>> =
+            if !parser.match_::<T>(vec![TokenType::SEMICOLON]) {
+                Some(parser.expression()?)
+            } else {
+                None
+            };
+        parser.consume::<T>(TokenType::SEMICOLON, "Expect ';' after loop condition.")?;
+
+        let increment: Option<Box<dyn Expr<T>>> =
+            if !parser.match_::<T>(vec![TokenType::RIGHT_PAREN]) {
+                Some(parser.expression()?)
+            } else {
+                None
+            };
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.")?;
+
+        let mut body: Box<dyn Stmt<T>> = parser.statement()?;
+
+        if let Some(increment) = increment {
+            body = Box::new(stmt::Block::new(vec![
+                Rc::new(RefCell::new(body)),
+                Rc::new(RefCell::new(Box::new(stmt::Expression::new(increment)))),
+            ]));
+        }
+
+        if condition.is_none() {
+            condition = Some(Box::new(expr::Literal::new(
+                crate::object::Object::Boolean(true),
+            )));
+        };
+
+        body = Box::new(stmt::While::new(condition.unwrap(), body));
+
+        if let Some(initializer) = initializer {
+            body = Box::new(stmt::Block::new(vec![
+                Rc::new(RefCell::new(initializer)),
+                Rc::new(RefCell::new(body)),
+            ]));
+        }
+
+        Ok(body)
     }
 }

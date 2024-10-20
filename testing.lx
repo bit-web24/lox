@@ -11,3 +11,9 @@ z = "Nothing";
 
 print z;
 
+
+if ((20 < 10) and (10 == 20)) {
+	print "20 < 10";
+} else {
+	print "20 > 10";
+}

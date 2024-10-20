@@ -1,6 +1,8 @@
 expression -> assignment ;
 assignment -> IDENTIFIER "=" assignment
-            | equality ;
+            | logical_or ;
+logical_or -> logical_and ( "or" logical_and )* ;
+logical_and-> equality ( "and" equality )* ;
 equality   -> comparison ( ( "!=" | "==" ) comparison )* ;
 comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term       -> factor ( ( "-" | "+" ) factor )* ;
@@ -16,8 +18,15 @@ declaration -> varDecl
             | statement ;
 statement  -> exprStmt
             | printStmt
-            | block ;
+            | block
+            | ifStmt
+            | whileStmt
+            | forStmt ;
 exprStmt   -> expression ";";
 printStmt  -> "print" expression ";";
 varDecl    -> "var" IDENTIFIER ( "=" expression )? ";" ;
 block      -> "{" declaration* "}" ;
+ifStmt     -> "if" "(" expression ")" statement
+              ( "else" statement )? ;
+while      -> "while" "(" expression ")" statement ;
+forStmt    -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression?  ")" statement ;

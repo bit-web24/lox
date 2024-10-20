@@ -6,7 +6,13 @@ use crate::{
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
-use std::{cell::RefCell, error::Error, rc::Rc};
+use std::{
+    borrow::Borrow,
+    cell::{Ref, RefCell},
+    error::Error,
+    ops::{Deref, DerefMut, Not},
+    rc::Rc,
+};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
@@ -16,9 +22,9 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn evaluate(
         &mut self,
-        expr: &mut dyn expr::Expr<Object>,
+        expr: Rc<RefCell<Box<dyn expr::Expr<Object>>>>,
     ) -> Result<Object, Box<dyn std::error::Error>> {
-        expr.accept(self)
+        expr.borrow_mut().accept(self)
     }
 
     pub fn new() -> Self {
@@ -87,7 +93,7 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Assign<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let value = self.evaluate(expr.value.as_mut())?;
+        let value = self.evaluate(expr.value.clone())?;
         self.env.borrow_mut().assign(&expr.name, value.clone())?;
         Ok(value)
     }
@@ -96,8 +102,8 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Binary<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let left = self.evaluate(expr.left.as_mut())?;
-        let right = self.evaluate(expr.right.as_mut())?;
+        let left = self.evaluate(expr.left.clone())?;
+        let right = self.evaluate(expr.right.clone())?;
 
         let rhs = right.to_owned();
         let check_number_operands = |v: Object| {
@@ -123,14 +129,16 @@ impl expr::Visitor<Object> for Interpreter {
         };
 
         match expr.operator.type_ {
-            TokenType::MINUS => check_number_operands(left - right),
+            TokenType::MINUS => Ok(left - right),
             TokenType::SLASH => check_number_operands(left / right),
-            TokenType::STAR => check_number_operands(left * right),
+            TokenType::STAR => Ok(left * right),
             TokenType::PLUS => check_addition_operands(left + right),
-            TokenType::GREATER => check_number_operands(Object::Boolean(left > right)),
-            TokenType::GREATER_EQUAL => check_number_operands(Object::Boolean(left >= right)),
-            TokenType::LESS => check_number_operands(Object::Boolean(left < right)),
-            TokenType::LESS_EQUAL => check_number_operands(Object::Boolean(left <= right)),
+            TokenType::GREATER => Ok(Object::Boolean(left > right)),
+            TokenType::GREATER_EQUAL => Ok(Object::Boolean(left >= right)),
+            TokenType::LESS => Ok(Object::Boolean(left < right)),
+            TokenType::LESS_EQUAL => Ok(Object::Boolean(left <= right)),
+            TokenType::EQUAL_EQUAL => Ok(Object::Boolean(left == right)),
+            TokenType::BANG_EQUAL => Ok(Object::Boolean(left != right)),
             _ => {
                 let mut err = LoxError::new();
                 err = err
@@ -157,11 +165,35 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Grouping<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        self.evaluate(expr.expression.as_mut())
+        self.evaluate(expr.expression.clone())
     }
 
-    fn visit_logical_expr(&self, expr: &expr::Logical<Object>) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_logical_expr(
+        &mut self,
+        expr: &expr::Logical<Object>,
+    ) -> Result<Object, Box<dyn Error>> {
+        let left = self.evaluate(expr.left.clone())?;
+
+        let mut get_truth = |token_type: &TokenType| {
+            let mut truth = Interpreter::is_truthy(left.borrow());
+            truth = if token_type.eq(&TokenType::AND) {
+                truth.not()
+            } else {
+                truth
+            };
+
+            if truth {
+                Ok(left.borrow().to_owned())
+            } else {
+                Ok(self.evaluate(expr.right.clone())?)
+            }
+        };
+
+        match expr.operator.type_.borrow() {
+            TokenType::AND => get_truth(&TokenType::AND),
+            TokenType::OR => get_truth(&TokenType::OR),
+            _ => Err(self.error("Unexpected Token", &expr.operator)),
+        }
     }
 
     fn visit_set_expr(&self, expr: &expr::Set<Object>) -> Result<Object, Box<dyn Error>> {
@@ -180,7 +212,7 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Unary<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let right = self.evaluate(expr.right.as_mut())?;
+        let right = self.evaluate(expr.right.clone())?;
 
         match expr.operator.type_ {
             TokenType::MINUS => match right {
@@ -207,7 +239,7 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        let value = self.env.borrow().get(&expr.name)?;
+        let value = self.env.borrow_mut().get(&expr.name)?;
         Ok(value)
     }
 }
@@ -229,7 +261,7 @@ impl stmt::Visitor<Object> for Interpreter {
         &mut self,
         stmt: &mut stmt::Expression<Object>,
     ) -> Result<(), Box<dyn Error>> {
-        self.evaluate(stmt.expression.as_mut())?;
+        self.evaluate(stmt.expression.clone())?;
         Ok(())
     }
 
@@ -237,12 +269,20 @@ impl stmt::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_if_stmt(&self, stmt: &stmt::If<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_if_stmt(&mut self, stmt: &mut stmt::If<Object>) -> Result<(), Box<dyn Error>> {
+        if Interpreter::is_truthy(&self.evaluate(stmt.condition.clone())?) {
+            self.execute(stmt.then_branch.clone())?;
+        } else {
+            if let Some(else_stmt) = stmt.else_branch.clone() {
+                self.execute(else_stmt.clone())?;
+            }
+        }
+
+        Ok(())
     }
 
     fn visit_print_stmt(&mut self, stmt: &mut stmt::Print<Object>) -> Result<(), Box<dyn Error>> {
-        let value = self.evaluate(stmt.expression.as_mut())?;
+        let value = self.evaluate(stmt.expression.clone())?;
         println!("{}", value);
         Ok(())
     }
@@ -254,14 +294,18 @@ impl stmt::Visitor<Object> for Interpreter {
     fn visit_var_stmt(&mut self, stmt: &mut stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
         let mut value = Object::Nil;
         if stmt.initializer.is_some() {
-            value = self.evaluate(stmt.initializer.as_mut().unwrap().as_mut())?;
+            value = self.evaluate(stmt.initializer.clone().unwrap())?;
         }
 
         self.env.borrow_mut().define(&stmt.name, value)?;
         Ok(())
     }
 
-    fn visit_while_stmt(&self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_while_stmt(&mut self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
+        while Interpreter::is_truthy(&self.evaluate(stmt.condition.clone())?) {
+            self.execute(stmt.body.clone())?;
+        }
+
+        Ok(())
     }
 }

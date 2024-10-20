@@ -1,6 +1,6 @@
 use crate::expr::{self, Expr};
 use crate::token::Token;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -14,11 +14,11 @@ pub trait Visitor<T: Debug> {
     fn visit_class_stmt(&self, stmt: &Class<T>) -> Result<(), Box<dyn Error>>;
     fn visit_expr_stmt(&mut self, stmt: &mut Expression<T>) -> Result<(), Box<dyn Error>>;
     fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_if_stmt(&self, stmt: &If<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_if_stmt(&mut self, stmt: &mut If<T>) -> Result<(), Box<dyn Error>>;
     fn visit_print_stmt(&mut self, stmt: &mut Print<T>) -> Result<(), Box<dyn Error>>;
     fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
     fn visit_var_stmt(&mut self, stmt: &mut Var<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_while_stmt(&self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_while_stmt(&mut self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
 }
 
 #[derive(Debug)]
@@ -65,12 +65,14 @@ impl<T: Debug> Stmt<T> for Class<T> {
 
 #[derive(Debug)]
 pub struct Expression<T> {
-    pub expression: Box<dyn expr::Expr<T>>,
+    pub expression: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
 }
 
 impl<T> Expression<T> {
     pub fn new(expression: Box<dyn Expr<T>>) -> Self {
-        Self { expression }
+        Self {
+            expression: Rc::new(RefCell::new(expression)),
+        }
     }
 }
 
@@ -101,21 +103,21 @@ impl<T: Debug> Stmt<T> for Function<T> {
 
 #[derive(Debug)]
 pub struct If<T> {
-    condition: Box<dyn expr::Expr<T>>,
-    then_branch: Box<dyn Stmt<T>>,
-    else_branch: Box<dyn Stmt<T>>,
+    pub condition: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
+    pub then_branch: Rc<RefCell<Box<dyn Stmt<T>>>>,
+    pub else_branch: Option<Rc<RefCell<Box<dyn Stmt<T>>>>>,
 }
 
 impl<T> If<T> {
-    fn new(
-        condition: Box<dyn Expr<T>>,
+    pub fn new(
+        condition: Box<dyn expr::Expr<T>>,
         then_branch: Box<dyn Stmt<T>>,
-        else_branch: Box<dyn Stmt<T>>,
+        else_branch: Option<Box<dyn Stmt<T>>>,
     ) -> Self {
         Self {
-            condition,
-            then_branch,
-            else_branch,
+            condition: Rc::new(RefCell::new(condition)),
+            then_branch: Rc::new(RefCell::new(then_branch)),
+            else_branch: else_branch.map(|stmt| Rc::new(RefCell::new(stmt))),
         }
     }
 }
@@ -128,12 +130,14 @@ impl<T: Debug> Stmt<T> for If<T> {
 
 #[derive(Debug)]
 pub struct Print<T> {
-    pub expression: Box<dyn expr::Expr<T>>,
+    pub expression: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
 }
 
 impl<T> Print<T> {
     pub fn new(expression: Box<dyn expr::Expr<T>>) -> Self {
-        Self { expression }
+        Self {
+            expression: Rc::new(RefCell::new(expression)),
+        }
     }
 }
 
@@ -164,12 +168,15 @@ impl<T: Debug> Stmt<T> for Return<T> {
 #[derive(Debug)]
 pub struct Var<T> {
     pub name: Token,
-    pub initializer: Option<Box<dyn expr::Expr<T>>>,
+    pub initializer: Option<Rc<RefCell<Box<dyn expr::Expr<T>>>>>,
 }
 
 impl<T> Var<T> {
     pub fn new(name: Token, initializer: Option<Box<dyn Expr<T>>>) -> Self {
-        Self { name, initializer }
+        Self {
+            name,
+            initializer: initializer.map(|init| Rc::new(RefCell::new(init))),
+        }
     }
 }
 
@@ -181,13 +188,16 @@ impl<T: Debug> Stmt<T> for Var<T> {
 
 #[derive(Debug)]
 pub struct While<T> {
-    condition: Box<dyn expr::Expr<T>>,
-    body: Box<dyn Stmt<T>>,
+    pub condition: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
+    pub body: Rc<RefCell<Box<dyn Stmt<T>>>>,
 }
 
 impl<T> While<T> {
-    fn new(condition: Box<dyn Expr<T>>, body: Box<dyn Stmt<T>>) -> Self {
-        Self { condition, body }
+    pub fn new(condition: Box<dyn Expr<T>>, body: Box<dyn Stmt<T>>) -> Self {
+        Self {
+            condition: Rc::new(RefCell::new(condition)),
+            body: Rc::new(RefCell::new(body)),
+        }
     }
 }
 

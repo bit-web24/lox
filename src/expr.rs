@@ -1,7 +1,9 @@
 use crate::{object::Object, token::Token};
 use std::any::Any;
+use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 pub trait Expr<T: Debug>: Debug {
     fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>>;
@@ -15,7 +17,7 @@ pub trait Visitor<T: Debug> {
     fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
     fn visit_group_expr(&mut self, expr: &mut Grouping<T>) -> Result<T, Box<dyn Error>>;
     fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Box<dyn Error>>;
-    fn visit_logical_expr(&self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_logical_expr(&mut self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
     fn visit_set_expr(&self, expr: &Set<T>) -> Result<T, Box<dyn Error>>;
     fn visit_super_expr(&self, expr: &Super) -> Result<T, Box<dyn Error>>;
     fn visit_this_expr(&self, expr: &This) -> Result<T, Box<dyn Error>>;
@@ -26,12 +28,15 @@ pub trait Visitor<T: Debug> {
 #[derive(Debug)]
 pub struct Assign<T: Debug> {
     pub name: Token,
-    pub value: Box<dyn Expr<T>>,
+    pub value: Rc<RefCell<Box<dyn Expr<T>>>>,
 }
 
 impl<T: Debug> Assign<T> {
     pub fn new(name: Token, value: Box<dyn Expr<T>>) -> Self {
-        Self { name, value }
+        Self {
+            name,
+            value: Rc::new(RefCell::new(value)),
+        }
     }
 }
 
@@ -47,17 +52,17 @@ impl<T: Debug + 'static> Expr<T> for Assign<T> {
 
 #[derive(Debug)]
 pub struct Binary<T: Debug> {
-    pub left: Box<dyn Expr<T>>,
+    pub left: Rc<RefCell<Box<dyn Expr<T>>>>,
     pub operator: Token,
-    pub right: Box<dyn Expr<T>>,
+    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
 }
 
 impl<T: Debug> Binary<T> {
     pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self {
-            left,
+            left: Rc::new(RefCell::new(left)),
             operator,
-            right,
+            right: Rc::new(RefCell::new(right)),
         }
     }
 }
@@ -123,12 +128,14 @@ impl<T: Debug + 'static> Expr<T> for Get<T> {
 
 #[derive(Debug)]
 pub struct Grouping<T: Debug> {
-    pub expression: Box<dyn Expr<T>>,
+    pub expression: Rc<RefCell<Box<dyn Expr<T>>>>,
 }
 
 impl<T: Debug> Grouping<T> {
     pub fn new(expression: Box<dyn Expr<T>>) -> Self {
-        Self { expression }
+        Self {
+            expression: Rc::new(RefCell::new(expression)),
+        }
     }
 }
 
@@ -165,17 +172,17 @@ impl<T: Debug + 'static> Expr<T> for Literal {
 
 #[derive(Debug)]
 pub struct Logical<T: Debug> {
-    left: Box<dyn Expr<T>>,
-    operator: Token,
-    right: Box<dyn Expr<T>>,
+    pub left: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub operator: Token,
+    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
 }
 
 impl<T: Debug> Logical<T> {
-    fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
+    pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self {
-            left,
+            left: Rc::new(RefCell::new(left)),
             operator,
-            right,
+            right: Rc::new(RefCell::new(right)),
         }
     }
 }
@@ -263,12 +270,15 @@ impl<T: Debug + 'static> Expr<T> for This {
 #[derive(Debug)]
 pub struct Unary<T: Debug> {
     pub operator: Token,
-    pub right: Box<dyn Expr<T>>,
+    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
 }
 
 impl<T: Debug> Unary<T> {
     pub fn new(operator: Token, right: Box<dyn Expr<T>>) -> Self {
-        Self { operator, right }
+        Self {
+            operator,
+            right: Rc::new(RefCell::new(right)),
+        }
     }
 }
 
