@@ -302,9 +302,7 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_while_stmt(&mut self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
-        let truth = self.evaluate(stmt.condition.clone())?;
-
-        while Interpreter::is_truthy(&truth) {
+        while Interpreter::is_truthy(&self.evaluate(stmt.condition.clone())?) {
             self.execute(stmt.body.clone())?;
         }
 

@@ -30,6 +30,8 @@ impl Parser {
             return statement::if_statement(self);
         } else if self.match_::<T>(vec![TokenType::WHILE]) {
             return statement::while_statement(self);
+        } else if self.match_::<T>(vec![TokenType::FOR]) {
+            return statement::for_statement(self);
         }
 
         statement::expression(self)
@@ -278,7 +280,7 @@ mod expression {
 
 mod statement {
     use super::Parser;
-    use crate::expr::Expr;
+    use crate::expr::{self, Expr};
     use crate::stmt::{self, Stmt};
     use crate::token::token_type::TokenType;
     use crate::token::Token;
@@ -361,5 +363,62 @@ mod statement {
         let body: Box<dyn Stmt<T>> = parser.statement()?;
 
         Ok(Box::new(stmt::While::new(condition, body)))
+    }
+
+    pub fn for_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after for.")?;
+
+        let initializer: Option<Box<dyn Stmt<T>>> =
+            if parser.match_::<T>(vec![TokenType::SEMICOLON]) {
+                None
+            } else if parser.match_::<T>(vec![TokenType::VAR]) {
+                Some(self::var_declaration(parser)?)
+            } else {
+                Some(self::expression(parser)?)
+            };
+
+        let mut condition: Option<Box<dyn Expr<T>>> =
+            if !parser.match_::<T>(vec![TokenType::SEMICOLON]) {
+                Some(parser.expression()?)
+            } else {
+                None
+            };
+        parser.consume::<T>(TokenType::SEMICOLON, "Expect ';' after loop condition.")?;
+
+        let increment: Option<Box<dyn Expr<T>>> =
+            if !parser.match_::<T>(vec![TokenType::RIGHT_PAREN]) {
+                Some(parser.expression()?)
+            } else {
+                None
+            };
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.")?;
+
+        let mut body: Box<dyn Stmt<T>> = parser.statement()?;
+
+        if let Some(increment) = increment {
+            body = Box::new(stmt::Block::new(vec![
+                Rc::new(RefCell::new(body)),
+                Rc::new(RefCell::new(Box::new(stmt::Expression::new(increment)))),
+            ]));
+        }
+
+        if condition.is_none() {
+            condition = Some(Box::new(expr::Literal::new(
+                crate::object::Object::Boolean(true),
+            )));
+        };
+
+        body = Box::new(stmt::While::new(condition.unwrap(), body));
+
+        if let Some(initializer) = initializer {
+            body = Box::new(stmt::Block::new(vec![
+                Rc::new(RefCell::new(initializer)),
+                Rc::new(RefCell::new(body)),
+            ]));
+        }
+
+        Ok(body)
     }
 }
