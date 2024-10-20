@@ -21,9 +21,9 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn evaluate(
         &mut self,
-        expr: &mut dyn expr::Expr<Object>,
+        expr: Rc<RefCell<Box<dyn expr::Expr<Object>>>>,
     ) -> Result<Object, Box<dyn std::error::Error>> {
-        expr.accept(self)
+        expr.borrow_mut().accept(self)
     }
 
     pub fn new() -> Self {
@@ -92,7 +92,7 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Assign<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let value = self.evaluate(expr.value.as_mut())?;
+        let value = self.evaluate(expr.value.clone())?;
         self.env.borrow_mut().assign(&expr.name, value.clone())?;
         Ok(value)
     }
@@ -101,8 +101,8 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Binary<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let left = self.evaluate(expr.left.as_mut())?;
-        let right = self.evaluate(expr.right.as_mut())?;
+        let left = self.evaluate(expr.left.clone())?;
+        let right = self.evaluate(expr.right.clone())?;
 
         let rhs = right.to_owned();
         let check_number_operands = |v: Object| {
@@ -162,7 +162,7 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Grouping<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        self.evaluate(expr.expression.as_mut())
+        self.evaluate(expr.expression.clone())
     }
 
     fn visit_logical_expr(&self, expr: &expr::Logical<Object>) -> Result<Object, Box<dyn Error>> {
@@ -185,7 +185,7 @@ impl expr::Visitor<Object> for Interpreter {
         &mut self,
         expr: &mut expr::Unary<Object>,
     ) -> Result<Object, Box<dyn Error>> {
-        let right = self.evaluate(expr.right.as_mut())?;
+        let right = self.evaluate(expr.right.clone())?;
 
         match expr.operator.type_ {
             TokenType::MINUS => match right {
@@ -234,7 +234,7 @@ impl stmt::Visitor<Object> for Interpreter {
         &mut self,
         stmt: &mut stmt::Expression<Object>,
     ) -> Result<(), Box<dyn Error>> {
-        self.evaluate(stmt.expression.as_mut())?;
+        self.evaluate(stmt.expression.clone())?;
         Ok(())
     }
 
@@ -243,11 +243,11 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_if_stmt(&mut self, stmt: &mut stmt::If<Object>) -> Result<(), Box<dyn Error>> {
-        if Interpreter::is_truthy(&self.evaluate(stmt.condition.as_mut())?) {
-            self.execute(Rc::new(RefCell::new(stmt.then_branch)))?;
+        if Interpreter::is_truthy(&self.evaluate(stmt.condition.clone())?) {
+            self.execute(stmt.then_branch.clone())?;
         } else {
-            if let Some(else_stmt) = stmt.else_branch {
-                self.execute(Rc::new(RefCell::new(else_stmt)))?;
+            if let Some(else_stmt) = stmt.else_branch.clone() {
+                self.execute(else_stmt.clone())?;
             }
         }
 
@@ -255,7 +255,7 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_print_stmt(&mut self, stmt: &mut stmt::Print<Object>) -> Result<(), Box<dyn Error>> {
-        let value = self.evaluate(stmt.expression.as_mut())?;
+        let value = self.evaluate(stmt.expression.clone())?;
         println!("{}", value);
         Ok(())
     }
@@ -267,7 +267,7 @@ impl stmt::Visitor<Object> for Interpreter {
     fn visit_var_stmt(&mut self, stmt: &mut stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
         let mut value = Object::Nil;
         if stmt.initializer.is_some() {
-            value = self.evaluate(stmt.initializer.as_mut().unwrap().as_mut())?;
+            value = self.evaluate(stmt.initializer.clone().unwrap())?;
         }
 
         self.env.borrow_mut().define(&stmt.name, value)?;
