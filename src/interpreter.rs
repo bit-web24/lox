@@ -7,9 +7,10 @@ use crate::{
     token::{token_type::TokenType, Token},
 };
 use std::{
+    borrow::Borrow,
     cell::{Ref, RefCell},
     error::Error,
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut, Not},
     rc::Rc,
 };
 
@@ -165,8 +166,32 @@ impl expr::Visitor<Object> for Interpreter {
         self.evaluate(expr.expression.clone())
     }
 
-    fn visit_logical_expr(&self, expr: &expr::Logical<Object>) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_logical_expr(
+        &mut self,
+        expr: &expr::Logical<Object>,
+    ) -> Result<Object, Box<dyn Error>> {
+        let left = self.evaluate(expr.left.clone())?;
+
+        let mut get_truth = |token_type: &TokenType| {
+            let mut truth = Interpreter::is_truthy(left.borrow());
+            truth = if token_type.eq(&TokenType::AND) {
+                truth.not()
+            } else {
+                truth
+            };
+
+            if truth {
+                Ok(left.borrow().to_owned())
+            } else {
+                Ok(self.evaluate(expr.right.clone())?)
+            }
+        };
+
+        match expr.operator.type_.borrow() {
+            TokenType::AND => get_truth(&TokenType::AND),
+            TokenType::OR => get_truth(&TokenType::OR),
+            _ => Err(self.error("Unexpected Token", &expr.operator)),
+        }
     }
 
     fn visit_set_expr(&self, expr: &expr::Set<Object>) -> Result<Object, Box<dyn Error>> {
@@ -212,7 +237,7 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        let value = self.env.borrow().get(&expr.name)?;
+        let value = self.env.borrow_mut().get(&expr.name)?;
         Ok(value)
     }
 }

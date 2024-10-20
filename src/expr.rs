@@ -17,7 +17,7 @@ pub trait Visitor<T: Debug> {
     fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
     fn visit_group_expr(&mut self, expr: &mut Grouping<T>) -> Result<T, Box<dyn Error>>;
     fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Box<dyn Error>>;
-    fn visit_logical_expr(&self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_logical_expr(&mut self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
     fn visit_set_expr(&self, expr: &Set<T>) -> Result<T, Box<dyn Error>>;
     fn visit_super_expr(&self, expr: &Super) -> Result<T, Box<dyn Error>>;
     fn visit_this_expr(&self, expr: &This) -> Result<T, Box<dyn Error>>;
@@ -172,17 +172,17 @@ impl<T: Debug + 'static> Expr<T> for Literal {
 
 #[derive(Debug)]
 pub struct Logical<T: Debug> {
-    left: Box<dyn Expr<T>>,
-    operator: Token,
-    right: Box<dyn Expr<T>>,
+    pub left: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub operator: Token,
+    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
 }
 
 impl<T: Debug> Logical<T> {
-    fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
+    pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
         Self {
-            left,
+            left: Rc::new(RefCell::new(left)),
             operator,
-            right,
+            right: Rc::new(RefCell::new(right)),
         }
     }
 }

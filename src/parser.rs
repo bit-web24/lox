@@ -139,7 +139,7 @@ mod expression {
     pub fn assignment<T: 'static + Debug>(
         parser: &mut Parser,
     ) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
-        let exp = equality::<T>(parser)?;
+        let exp = or::<T>(parser)?;
 
         if parser.match_::<T>(vec![TokenType::EQUAL]) {
             let equals: Token = parser.previous::<T>();
@@ -247,6 +247,30 @@ mod expression {
         }
 
         panic!("Expected expression.");
+    }
+
+    fn or<T: 'static + Debug>(parser: &mut Parser) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let mut expression: Box<dyn Expr<T>> = and::<T>(parser)?;
+
+        while parser.match_::<T>(vec![TokenType::OR]) {
+            let operator: Token = parser.previous::<T>();
+            let right: Box<dyn Expr<T>> = and::<T>(parser)?;
+            expression = Box::new(expr::Logical::new(expression, operator, right));
+        }
+
+        Ok(expression)
+    }
+
+    fn and<T: 'static + Debug>(parser: &mut Parser) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let mut expression: Box<dyn Expr<T>> = equality::<T>(parser)?;
+
+        while parser.match_::<T>(vec![TokenType::AND]) {
+            let operator: Token = parser.previous::<T>();
+            let right: Box<dyn Expr<T>> = equality::<T>(parser)?;
+            expression = Box::new(expr::Logical::new(expression, operator, right));
+        }
+
+        Ok(expression)
     }
 }
 
