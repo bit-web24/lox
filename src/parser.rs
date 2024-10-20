@@ -26,6 +26,8 @@ impl Parser {
             return statement::print(self);
         } else if self.match_::<T>(vec![TokenType::LEFT_BRACE]) {
             return Ok(Box::new(stmt::Block::new(statement::block(self)?)));
+        } else if self.match_::<T>(vec![TokenType::IF]) {
+            return statement::if_statement(self);
         }
 
         statement::expression(self)
@@ -307,5 +309,20 @@ mod statement {
         }
 
         Ok(statements)
+    }
+
+    pub fn if_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after if.")?;
+        let condition: Box<dyn Expr<T>> = parser.expression()?;
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")?;
+        let then_branch: Box<dyn Stmt<T>> = parser.statement()?;
+        let else_branch: Option<Box<dyn Stmt<T>>> = if parser.match_::<T>(vec![TokenType::ELSE]) {
+            Some(parser.statement()?)
+        } else {
+            None
+        };
+        Ok(Box::new(stmt::If::new(condition, then_branch, else_branch)))
     }
 }

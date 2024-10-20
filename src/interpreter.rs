@@ -6,7 +6,12 @@ use crate::{
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
-use std::{cell::RefCell, error::Error, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    error::Error,
+    ops::{Deref, DerefMut},
+    rc::Rc,
+};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
@@ -237,8 +242,16 @@ impl stmt::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_if_stmt(&self, stmt: &stmt::If<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_if_stmt(&mut self, stmt: &mut stmt::If<Object>) -> Result<(), Box<dyn Error>> {
+        if Interpreter::is_truthy(&self.evaluate(stmt.condition.as_mut())?) {
+            self.execute(Rc::new(RefCell::new(stmt.then_branch)))?;
+        } else {
+            if let Some(else_stmt) = stmt.else_branch {
+                self.execute(Rc::new(RefCell::new(else_stmt)))?;
+            }
+        }
+
+        Ok(())
     }
 
     fn visit_print_stmt(&mut self, stmt: &mut stmt::Print<Object>) -> Result<(), Box<dyn Error>> {

@@ -14,7 +14,7 @@ pub trait Visitor<T: Debug> {
     fn visit_class_stmt(&self, stmt: &Class<T>) -> Result<(), Box<dyn Error>>;
     fn visit_expr_stmt(&mut self, stmt: &mut Expression<T>) -> Result<(), Box<dyn Error>>;
     fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_if_stmt(&self, stmt: &If<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_if_stmt(&mut self, stmt: &mut If<T>) -> Result<(), Box<dyn Error>>;
     fn visit_print_stmt(&mut self, stmt: &mut Print<T>) -> Result<(), Box<dyn Error>>;
     fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
     fn visit_var_stmt(&mut self, stmt: &mut Var<T>) -> Result<(), Box<dyn Error>>;
@@ -101,16 +101,16 @@ impl<T: Debug> Stmt<T> for Function<T> {
 
 #[derive(Debug)]
 pub struct If<T> {
-    condition: Box<dyn expr::Expr<T>>,
-    then_branch: Box<dyn Stmt<T>>,
-    else_branch: Box<dyn Stmt<T>>,
+    pub condition: Box<dyn expr::Expr<T>>,
+    pub then_branch: Box<dyn Stmt<T>>,
+    pub else_branch: Option<Box<dyn Stmt<T>>>,
 }
 
 impl<T> If<T> {
-    fn new(
+    pub fn new(
         condition: Box<dyn Expr<T>>,
         then_branch: Box<dyn Stmt<T>>,
-        else_branch: Box<dyn Stmt<T>>,
+        else_branch: Option<Box<dyn Stmt<T>>>,
     ) -> Self {
         Self {
             condition,
