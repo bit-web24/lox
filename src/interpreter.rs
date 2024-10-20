@@ -129,14 +129,16 @@ impl expr::Visitor<Object> for Interpreter {
         };
 
         match expr.operator.type_ {
-            TokenType::MINUS => check_number_operands(left - right),
+            TokenType::MINUS => Ok(left - right),
             TokenType::SLASH => check_number_operands(left / right),
-            TokenType::STAR => check_number_operands(left * right),
+            TokenType::STAR => Ok(left * right),
             TokenType::PLUS => check_addition_operands(left + right),
-            TokenType::GREATER => check_number_operands(Object::Boolean(left > right)),
-            TokenType::GREATER_EQUAL => check_number_operands(Object::Boolean(left >= right)),
-            TokenType::LESS => check_number_operands(Object::Boolean(left < right)),
-            TokenType::LESS_EQUAL => check_number_operands(Object::Boolean(left <= right)),
+            TokenType::GREATER => Ok(Object::Boolean(left > right)),
+            TokenType::GREATER_EQUAL => Ok(Object::Boolean(left >= right)),
+            TokenType::LESS => Ok(Object::Boolean(left < right)),
+            TokenType::LESS_EQUAL => Ok(Object::Boolean(left <= right)),
+            TokenType::EQUAL_EQUAL => Ok(Object::Boolean(left == right)),
+            TokenType::BANG_EQUAL => Ok(Object::Boolean(left != right)),
             _ => {
                 let mut err = LoxError::new();
                 err = err
@@ -299,7 +301,13 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_while_stmt(&self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_while_stmt(&mut self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
+        let truth = self.evaluate(stmt.condition.clone())?;
+
+        while Interpreter::is_truthy(&truth) {
+            self.execute(stmt.body.clone())?;
+        }
+
+        Ok(())
     }
 }

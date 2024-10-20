@@ -1,6 +1,6 @@
 use crate::expr::{self, Expr};
 use crate::token::Token;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -18,7 +18,7 @@ pub trait Visitor<T: Debug> {
     fn visit_print_stmt(&mut self, stmt: &mut Print<T>) -> Result<(), Box<dyn Error>>;
     fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
     fn visit_var_stmt(&mut self, stmt: &mut Var<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_while_stmt(&self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_while_stmt(&mut self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
 }
 
 #[derive(Debug)]
@@ -188,13 +188,16 @@ impl<T: Debug> Stmt<T> for Var<T> {
 
 #[derive(Debug)]
 pub struct While<T> {
-    condition: Box<dyn expr::Expr<T>>,
-    body: Box<dyn Stmt<T>>,
+    pub condition: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
+    pub body: Rc<RefCell<Box<dyn Stmt<T>>>>,
 }
 
 impl<T> While<T> {
-    fn new(condition: Box<dyn Expr<T>>, body: Box<dyn Stmt<T>>) -> Self {
-        Self { condition, body }
+    pub fn new(condition: Box<dyn Expr<T>>, body: Box<dyn Stmt<T>>) -> Self {
+        Self {
+            condition: Rc::new(RefCell::new(condition)),
+            body: Rc::new(RefCell::new(body)),
+        }
     }
 }
 

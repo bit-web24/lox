@@ -19,10 +19,12 @@ declaration -> varDecl
 statement  -> exprStmt
             | printStmt
             | block
-            | ifStmt;
+            | ifStmt
+            | whileStmt ;
 exprStmt   -> expression ";";
 printStmt  -> "print" expression ";";
 varDecl    -> "var" IDENTIFIER ( "=" expression )? ";" ;
 block      -> "{" declaration* "}" ;
 ifStmt     -> "if" "(" expression ")" statement
               ( "else" statement )? ;
+while      -> "while" "(" expression ")" statement ;

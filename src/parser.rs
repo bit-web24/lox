@@ -28,6 +28,8 @@ impl Parser {
             return Ok(Box::new(stmt::Block::new(statement::block(self)?)));
         } else if self.match_::<T>(vec![TokenType::IF]) {
             return statement::if_statement(self);
+        } else if self.match_::<T>(vec![TokenType::WHILE]) {
+            return statement::while_statement(self);
         }
 
         statement::expression(self)
@@ -348,5 +350,16 @@ mod statement {
             None
         };
         Ok(Box::new(stmt::If::new(condition, then_branch, else_branch)))
+    }
+
+    pub fn while_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after if.")?;
+        let condition: Box<dyn Expr<T>> = parser.expression()?;
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")?;
+        let body: Box<dyn Stmt<T>> = parser.statement()?;
+
+        Ok(Box::new(stmt::While::new(condition, body)))
     }
 }
