@@ -86,12 +86,16 @@ impl<T: Debug> Stmt<T> for Expression<T> {
 pub struct Function<T> {
     name: Token,
     params: Vec<Token>,
-    body: Vec<Box<dyn Stmt<T>>>,
+    body: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>,
 }
 
 impl<T> Function<T> {
     fn new(name: Token, params: Vec<Token>, body: Vec<Box<dyn Stmt<T>>>) -> Self {
-        Self { name, params, body }
+        Self {
+            name,
+            params,
+            body: body.into_iter().map(|v| Rc::new(RefCell::new(v))).collect(),
+        }
     }
 }
 

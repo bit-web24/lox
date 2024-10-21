@@ -79,17 +79,20 @@ impl<T: Debug + 'static> Expr<T> for Binary<T> {
 
 #[derive(Debug)]
 pub struct Call<T: Debug> {
-    callee: Box<dyn Expr<T>>,
+    callee: Rc<RefCell<Box<dyn Expr<T>>>>,
     paren: Token,
-    arguments: Vec<Box<dyn Expr<T>>>,
+    arguments: Vec<Rc<RefCell<Box<dyn Expr<T>>>>>,
 }
 
 impl<T: Debug> Call<T> {
     pub fn new(callee: Box<dyn Expr<T>>, paren: Token, arguments: Vec<Box<dyn Expr<T>>>) -> Self {
         Self {
-            callee,
+            callee: Rc::new(RefCell::new(callee)),
             paren,
-            arguments,
+            arguments: arguments
+                .into_iter()
+                .map(|arg| Rc::new(RefCell::new(arg)))
+                .collect(),
         }
     }
 }
