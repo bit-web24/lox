@@ -1,7 +1,15 @@
+pub mod callable;
+
 use std::{
+    error::Error,
     fmt,
     ops::{Add, Div, Mul, Sub},
 };
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::{interpreter::Interpreter, stmt::Stmt, token::Token};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -9,6 +17,7 @@ pub enum Object {
     Number(f64),
     Boolean(bool),
     Nil,
+    Function(Vec<Token>, Rc<RefCell<Box<dyn Stmt<Object>>>>),
 }
 
 impl Object {
@@ -60,6 +69,7 @@ impl fmt::Display for Object {
             Object::Number(n) => write!(f, "{}", n),
             Object::Boolean(b) => write!(f, "{}", b),
             Object::Nil => write!(f, "nil"),
+            _ => Ok(()),
         }
     }
 }
