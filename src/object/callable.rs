@@ -22,8 +22,8 @@ impl Callable for Object {
         paren: Token,
     ) -> Result<Object, Box<dyn Error>> {
         match self {
-            Object::Function(argv, body) => {
-                let (expected_len, found_len) = (argv.len(), arguments.len());
+            Object::Function(params, body) => {
+                let (expected_len, found_len) = (params.len(), arguments.len());
                 if expected_len != found_len {
                     return Err(interpreter.error(
                         &format!("Expected {} arguments but got {}.", expected_len, found_len),
@@ -31,11 +31,15 @@ impl Callable for Object {
                     ));
                 }
 
-                interpreter.execute(body.clone())?;
-                // need to return the "return value from function".
-                Ok(Object::Nil)
+                let returned_val: Object = interpreter.execute_function(
+                    interpreter.env.clone(),
+                    (params.to_owned(), arguments),
+                    body.clone(),
+                )?;
+
+                Ok(returned_val)
             }
-            _ => Err(interpreter.error("Can only call functions.", &paren)),
+            _ => Err(interpreter.error("Can only call functions and classes.", &paren)),
         }
     }
 }

@@ -64,7 +64,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute_block(
+    pub fn execute_block(
         &mut self,
         statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
         environment: Rc<RefCell<Environment>>,
@@ -78,6 +78,23 @@ impl Interpreter {
 
         self.env = previous;
         Ok(())
+    }
+
+    pub fn execute_function(
+        &mut self,
+        environment: Rc<RefCell<Environment>>,
+        (parmas, arguments): (Vec<Token>, Vec<Object>),
+        statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
+    ) -> Result<Object, Box<dyn Error>> {
+        for (token, argument) in parmas.iter().zip(arguments.iter()) {
+            environment
+                .borrow_mut()
+                .define(token, argument.to_owned())?;
+        }
+
+        self.execute_block(statements, environment.clone())?;
+
+        Ok(Object::Nil)
     }
 
     pub fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
@@ -167,10 +184,9 @@ impl expr::Visitor<Object> for Interpreter {
             .iter()
             .map(|arg| self.evaluate(arg.clone()))
             .collect::<Result<Vec<Object>, Box<dyn Error>>>()?;
+        let returned_v = function.call(self.clone(), arguments, expr.paren.clone())?;
 
-        function.call(self.clone(), arguments, expr.paren.clone())?;
-
-        Ok(Object::Nil)
+        Ok(returned_v)
     }
 
     fn visit_get_expr(&self, expr: &expr::Get<Object>) -> Result<Object, Box<dyn Error>> {

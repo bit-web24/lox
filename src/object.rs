@@ -17,7 +17,7 @@ pub enum Object {
     Number(f64),
     Boolean(bool),
     Nil,
-    Function(Vec<Token>, Rc<RefCell<Box<dyn Stmt<Object>>>>),
+    Function(Vec<Token>, Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>),
 }
 
 impl Object {
