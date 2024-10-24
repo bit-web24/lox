@@ -7,7 +7,7 @@ use crate::{
     token::{token_type::TokenType, Token},
 };
 
-use crate::object::callable::Callable;
+use crate::callable::Callable;
 
 use std::{
     borrow::Borrow,

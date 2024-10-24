@@ -1,5 +1,6 @@
 use std::{error::Error, io::Write, process::exit};
 
+mod callable;
 mod env;
 mod error;
 mod expr;
