@@ -1,4 +1,5 @@
 use crate::{
+    callable,
     env::Environment,
     error::{error_types::RuntimeError, LoxError},
     expr,
@@ -31,9 +32,22 @@ impl Interpreter {
     }
 
     pub fn new() -> Self {
-        Self {
+        let interpreter = Self {
             env: Rc::new(RefCell::new(Environment::new())),
+        };
+
+        for function in callable::get_native_functions() {
+            interpreter
+                .env
+                .borrow_mut()
+                .define(
+                    &Token::new(TokenType::IDENTIFIER, function.0.to_string(), None, 0),
+                    function.1,
+                )
+                .unwrap();
         }
+
+        interpreter
     }
 
     fn is_truthy(object: &Object) -> bool {
