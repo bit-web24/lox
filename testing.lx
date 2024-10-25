@@ -17,3 +17,9 @@ if ((20 < 10) and (10 == 20)) {
 } else {
 	print "20 > 10";
 }
+
+fun rt() {
+	print "hello";
+}
+
+rt();

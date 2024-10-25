@@ -4,6 +4,7 @@ mod callable;
 mod env;
 mod error;
 mod expr;
+mod function;
 mod interpreter;
 mod object;
 mod parser;

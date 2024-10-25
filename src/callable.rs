@@ -23,7 +23,7 @@ pub trait Callable {
 }
 
 pub fn get_native_functions() -> Vec<(&'static str, Object)> {
-    vec![("clock", Object::Function(vec![], None, Some(clock)))]
+    vec![("clock", Object::Function(None, Some(clock)))]
 }
 
 fn clock(argv: Vec<Object>) -> Result<Object, Box<dyn Error>> {

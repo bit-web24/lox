@@ -10,13 +10,7 @@ use crate::{
 
 use crate::callable::Callable;
 
-use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
-    error::Error,
-    ops::{Deref, DerefMut, Not},
-    rc::Rc,
-};
+use std::{borrow::Borrow, cell::RefCell, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
@@ -36,13 +30,13 @@ impl Interpreter {
             env: Rc::new(RefCell::new(Environment::new())),
         };
 
-        for function in callable::get_native_functions() {
+        for (name, function) in callable::get_native_functions() {
             interpreter
                 .env
                 .borrow_mut()
                 .define(
-                    &Token::new(TokenType::IDENTIFIER, function.0.to_string(), None, 0),
-                    function.1,
+                    &Token::new(TokenType::IDENTIFIER, name.to_string(), None, 0),
+                    function,
                 )
                 .unwrap();
         }
@@ -198,7 +192,7 @@ impl expr::Visitor<Object> for Interpreter {
             .iter()
             .map(|arg| self.evaluate(arg.clone()))
             .collect::<Result<Vec<Object>, Box<dyn Error>>>()?;
-        let returned_v = function.call(self.clone(), arguments, expr.paren.clone())?;
+        let returned_v = function.call(self.clone(), arguments, expr.paren.to_owned())?;
 
         Ok(returned_v)
     }
@@ -312,7 +306,10 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_func_stmt(&self, stmt: &stmt::Function<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+        let function = crate::function::Function::new(stmt.clone());
+        let fn_obj = Object::Function(Rc::new(RefCell::new(function)).into(), None);
+        self.env.borrow_mut().define(&stmt.name, fn_obj)?;
+        Ok(())
     }
 
     fn visit_if_stmt(&mut self, stmt: &mut stmt::If<Object>) -> Result<(), Box<dyn Error>> {

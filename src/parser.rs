@@ -33,7 +33,7 @@ impl Parser {
         } else if self.match_::<T>(vec![TokenType::FOR]) {
             return statement::for_statement(self);
         } else if self.match_::<T>(vec![TokenType::FUN]) {
-            return statement::function_definition(self);
+            return statement::function_definition::<T>(self, "function");
         }
 
         statement::expression(self)
@@ -102,7 +102,7 @@ impl Parser {
         Err(self.error(self.peek(), message))
     }
 
-    fn synchronize<T>(&mut self) {
+    fn _synchronize<T>(&mut self) {
         self.advance::<T>();
         while !self.is_at_end() {
             if self.previous::<T>().type_ == TokenType::SEMICOLON {
@@ -139,10 +139,8 @@ mod expression {
     use crate::expr::{self, Expr};
     use crate::object::Object;
     use crate::token::{token_type::TokenType, Token};
-    use std::cell::RefCell;
     use std::error::Error;
     use std::fmt::Debug;
-    use std::rc::Rc;
 
     pub fn assignment<T: 'static + Debug>(
         parser: &mut Parser,
@@ -240,7 +238,7 @@ mod expression {
 
         if parser.match_::<T>(vec![TokenType::NUMBER, TokenType::STRING]) {
             return Ok(Box::new(expr::Literal::new(
-                parser.previous::<T>().literal.unwrap(),
+                *parser.previous::<T>().literal.unwrap(),
             )));
         }
 
@@ -329,6 +327,7 @@ mod statement {
     use std::cell::RefCell;
     use std::error::Error;
     use std::fmt::Debug;
+    use std::os::linux::raw::stat;
     use std::rc::Rc;
 
     pub fn print<T: 'static + Debug>(
@@ -466,9 +465,13 @@ mod statement {
 
     pub fn function_definition<T: 'static + Debug>(
         parser: &mut Parser,
+        kind: &str,
     ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
         let name: Token = parser
-            .consume::<T>(TokenType::IDENTIFIER, "Expect function name.")?
+            .consume::<T>(
+                TokenType::IDENTIFIER,
+                format!("Expect {} name.", kind).as_str(),
+            )?
             .to_owned();
         parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after function name.")?;
         let mut parameters: Vec<Token> = Vec::new();
@@ -488,7 +491,7 @@ mod statement {
             }
         }
         parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")?;
-        let body: Box<dyn Stmt<T>> = parser.statement()?;
+        let body = block(parser)?;
         Ok(Box::new(stmt::Function::new(name, parameters, body)))
     }
 }
