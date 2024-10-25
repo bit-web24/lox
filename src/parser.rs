@@ -312,7 +312,7 @@ mod expression {
             }
         }
 
-        let paren = parser.consume::<T>(TokenType::COMMA, "Expected ')' after arguments.")?;
+        let paren = parser.consume::<T>(TokenType::RIGHT_PAREN, "Expected ')' after arguments.")?;
 
         Ok(Box::new(expr::Call::new(callee, paren, arguments)))
     }
@@ -327,7 +327,6 @@ mod statement {
     use std::cell::RefCell;
     use std::error::Error;
     use std::fmt::Debug;
-    use std::os::linux::raw::stat;
     use std::rc::Rc;
 
     pub fn print<T: 'static + Debug>(
