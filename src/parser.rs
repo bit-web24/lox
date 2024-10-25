@@ -32,6 +32,8 @@ impl Parser {
             return statement::while_statement(self);
         } else if self.match_::<T>(vec![TokenType::FOR]) {
             return statement::for_statement(self);
+        } else if self.match_::<T>(vec![TokenType::FUN]) {
+            return statement::function_definition(self);
         }
 
         statement::expression(self)
@@ -137,8 +139,10 @@ mod expression {
     use crate::expr::{self, Expr};
     use crate::object::Object;
     use crate::token::{token_type::TokenType, Token};
+    use std::cell::RefCell;
     use std::error::Error;
     use std::fmt::Debug;
+    use std::rc::Rc;
 
     pub fn assignment<T: 'static + Debug>(
         parser: &mut Parser,
@@ -216,7 +220,7 @@ mod expression {
             return Ok(Box::new(expr::Unary::new(operator, right)));
         }
 
-        return primary(parser);
+        return call(parser);
     }
 
     fn primary<T: 'static + Debug>(
@@ -276,12 +280,50 @@ mod expression {
 
         Ok(expression)
     }
+
+    fn call<T: 'static + Debug>(parser: &mut Parser) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let mut expr: Box<dyn Expr<T>> = primary::<T>(parser)?;
+
+        loop {
+            if parser.match_::<T>(vec![TokenType::LEFT_PAREN]) {
+                expr = finish_call(parser, expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call<T: 'static + Debug>(
+        parser: &mut Parser,
+        callee: Box<dyn Expr<T>>,
+    ) -> Result<Box<dyn Expr<T>>, Box<dyn Error>> {
+        let mut arguments: Vec<Box<dyn Expr<T>>> = Vec::new();
+
+        if !parser.check(TokenType::RIGHT_PAREN) {
+            loop {
+                if arguments.len() >= 255 {
+                    parser.error(parser.peek(), "Can't have more than 255 arguments.");
+                }
+                arguments.push(parser.expression()?);
+
+                if !parser.match_::<T>(vec![TokenType::COMMA]) {
+                    break;
+                }
+            }
+        }
+
+        let paren = parser.consume::<T>(TokenType::COMMA, "Expected ')' after arguments.")?;
+
+        Ok(Box::new(expr::Call::new(callee, paren, arguments)))
+    }
 }
 
 mod statement {
     use super::Parser;
     use crate::expr::{self, Expr};
-    use crate::stmt::{self, Stmt};
+    use crate::stmt::{self, Block, Stmt};
     use crate::token::token_type::TokenType;
     use crate::token::Token;
     use std::cell::RefCell;
@@ -420,5 +462,33 @@ mod statement {
         }
 
         Ok(body)
+    }
+
+    pub fn function_definition<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        let name: Token = parser
+            .consume::<T>(TokenType::IDENTIFIER, "Expect function name.")?
+            .to_owned();
+        parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after function name.")?;
+        let mut parameters: Vec<Token> = Vec::new();
+        if !parser.check(TokenType::RIGHT_PAREN) {
+            loop {
+                if parameters.len() >= 255 {
+                    parser.error(
+                        &parser.previous::<T>(),
+                        "Cannot have more than 255 parameters.",
+                    );
+                }
+                parameters
+                    .push(parser.consume::<T>(TokenType::IDENTIFIER, "Expect parameter name.")?);
+                if !parser.match_::<T>(vec![TokenType::COMMA]) {
+                    break;
+                }
+            }
+        }
+        parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")?;
+        let body: Box<dyn Stmt<T>> = parser.statement()?;
+        Ok(Box::new(stmt::Function::new(name, parameters, body)))
     }
 }

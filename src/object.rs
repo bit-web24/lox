@@ -1,7 +1,13 @@
 use std::{
+    error::Error,
     fmt,
     ops::{Add, Div, Mul, Sub},
 };
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::{callable::Callable, interpreter::Interpreter, stmt::Stmt, token::Token};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -9,6 +15,11 @@ pub enum Object {
     Number(f64),
     Boolean(bool),
     Nil,
+    Function(
+        Vec<Token>,
+        Option<Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>>,
+        Option<fn(Vec<Object>) -> Result<Object, Box<dyn Error>>>,
+    ),
 }
 
 impl Object {
@@ -60,6 +71,7 @@ impl fmt::Display for Object {
             Object::Number(n) => write!(f, "{}", n),
             Object::Boolean(b) => write!(f, "{}", b),
             Object::Nil => write!(f, "nil"),
+            _ => Ok(()),
         }
     }
 }
@@ -140,6 +152,49 @@ impl Mul for Object {
         match (self, rhs) {
             (Object::Number(n1), Object::Number(n2)) => Object::Number(n1 * n2),
             _ => Object::Nil,
+        }
+    }
+}
+
+impl Callable for Object {
+    fn call(
+        &self,
+        mut interpreter: Interpreter,
+        arguments: Vec<Object>,
+        paren: Token,
+    ) -> Result<Object, Box<dyn Error>> {
+        match self {
+            Object::Function(params, body, fn_ptr) => {
+                let (expected_len, found_len) = (self.arity(), arguments.len());
+                if expected_len != found_len {
+                    return Err(interpreter.error(
+                        &format!("Expected {} arguments but got {}.", expected_len, found_len),
+                        &paren,
+                    ));
+                }
+
+                let returned_val: Object;
+
+                if let Some(function) = fn_ptr {
+                    returned_val = function(arguments)?;
+                } else {
+                    returned_val = interpreter.execute_function(
+                        interpreter.env.clone(),
+                        (params.to_owned(), arguments),
+                        body.clone().unwrap(),
+                    )?;
+                }
+
+                Ok(returned_val)
+            }
+            _ => Err(interpreter.error("Can only call functions and classes.", &paren)),
+        }
+    }
+
+    fn arity(&self) -> usize {
+        match self {
+            Object::Function(params, _, _) => params.len(),
+            _ => 0,
         }
     }
 }

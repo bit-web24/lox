@@ -1,4 +1,5 @@
 use crate::{
+    callable,
     env::Environment,
     error::{error_types::RuntimeError, LoxError},
     expr,
@@ -6,6 +7,9 @@ use crate::{
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
+
+use crate::callable::Callable;
+
 use std::{
     borrow::Borrow,
     cell::{Ref, RefCell},
@@ -28,9 +32,22 @@ impl Interpreter {
     }
 
     pub fn new() -> Self {
-        Self {
+        let interpreter = Self {
             env: Rc::new(RefCell::new(Environment::new())),
+        };
+
+        for function in callable::get_native_functions() {
+            interpreter
+                .env
+                .borrow_mut()
+                .define(
+                    &Token::new(TokenType::IDENTIFIER, function.0.to_string(), None, 0),
+                    function.1,
+                )
+                .unwrap();
         }
+
+        interpreter
     }
 
     fn is_truthy(object: &Object) -> bool {
@@ -53,12 +70,15 @@ impl Interpreter {
 
         Ok(Object::Nil)
     }
-    fn execute(&mut self, stmt: Rc<RefCell<Box<dyn Stmt<Object>>>>) -> Result<(), Box<dyn Error>> {
+    pub fn execute(
+        &mut self,
+        stmt: Rc<RefCell<Box<dyn Stmt<Object>>>>,
+    ) -> Result<(), Box<dyn Error>> {
         stmt.borrow_mut().accept(self)?;
         Ok(())
     }
 
-    fn execute_block(
+    pub fn execute_block(
         &mut self,
         statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
         environment: Rc<RefCell<Environment>>,
@@ -74,7 +94,24 @@ impl Interpreter {
         Ok(())
     }
 
-    fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
+    pub fn execute_function(
+        &mut self,
+        environment: Rc<RefCell<Environment>>,
+        (parmas, arguments): (Vec<Token>, Vec<Object>),
+        statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
+    ) -> Result<Object, Box<dyn Error>> {
+        for (token, argument) in parmas.iter().zip(arguments.iter()) {
+            environment
+                .borrow_mut()
+                .define(token, argument.to_owned())?;
+        }
+
+        self.execute_block(statements, environment.clone())?;
+
+        Ok(Object::Nil)
+    }
+
+    pub fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
         let mut err = LoxError::new();
         err = err
             .type_(Box::new(RuntimeError))
@@ -153,8 +190,17 @@ impl expr::Visitor<Object> for Interpreter {
         }
     }
 
-    fn visit_call_expr(&self, expr: &expr::Call<Object>) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_call_expr(&mut self, expr: &expr::Call<Object>) -> Result<Object, Box<dyn Error>> {
+        let function: Box<dyn Callable> = Box::new(self.evaluate(expr.callee.clone())?);
+
+        let arguments = expr
+            .arguments
+            .iter()
+            .map(|arg| self.evaluate(arg.clone()))
+            .collect::<Result<Vec<Object>, Box<dyn Error>>>()?;
+        let returned_v = function.call(self.clone(), arguments, expr.paren.clone())?;
+
+        Ok(returned_v)
     }
 
     fn visit_get_expr(&self, expr: &expr::Get<Object>) -> Result<Object, Box<dyn Error>> {

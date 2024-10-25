@@ -13,7 +13,7 @@ pub trait Expr<T: Debug>: Debug {
 pub trait Visitor<T: Debug> {
     fn visit_assign_expr(&mut self, expr: &mut Assign<T>) -> Result<T, Box<dyn Error>>; // a = 30;
     fn visit_binary_expr(&mut self, expr: &mut Binary<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_call_expr(&self, expr: &Call<T>) -> Result<T, Box<dyn Error>>;
+    fn visit_call_expr(&mut self, expr: &Call<T>) -> Result<T, Box<dyn Error>>;
     fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
     fn visit_group_expr(&mut self, expr: &mut Grouping<T>) -> Result<T, Box<dyn Error>>;
     fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Box<dyn Error>>;
@@ -79,17 +79,20 @@ impl<T: Debug + 'static> Expr<T> for Binary<T> {
 
 #[derive(Debug)]
 pub struct Call<T: Debug> {
-    callee: Box<dyn Expr<T>>,
-    paren: Token,
-    arguments: Vec<Box<dyn Expr<T>>>,
+    pub callee: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub paren: Token,
+    pub arguments: Vec<Rc<RefCell<Box<dyn Expr<T>>>>>,
 }
 
 impl<T: Debug> Call<T> {
     pub fn new(callee: Box<dyn Expr<T>>, paren: Token, arguments: Vec<Box<dyn Expr<T>>>) -> Self {
         Self {
-            callee,
+            callee: Rc::new(RefCell::new(callee)),
             paren,
-            arguments,
+            arguments: arguments
+                .into_iter()
+                .map(|arg| Rc::new(RefCell::new(arg)))
+                .collect(),
         }
     }
 }
