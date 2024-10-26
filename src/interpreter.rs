@@ -2,7 +2,7 @@ use crate::{
     callable,
     env::Environment,
     error::{error_types::RuntimeError, LoxError},
-    expr,
+    expr, function,
     object::Object,
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
@@ -86,23 +86,6 @@ impl Interpreter {
 
         self.env = previous;
         Ok(())
-    }
-
-    pub fn execute_function(
-        &mut self,
-        environment: Rc<RefCell<Environment>>,
-        (parmas, arguments): (Vec<Token>, Vec<Object>),
-        statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
-    ) -> Result<Object, Box<dyn Error>> {
-        for (token, argument) in parmas.iter().zip(arguments.iter()) {
-            environment
-                .borrow_mut()
-                .define(token, argument.to_owned())?;
-        }
-
-        self.execute_block(statements, environment.clone())?;
-
-        Ok(Object::Nil)
     }
 
     pub fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
@@ -306,8 +289,8 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_func_stmt(&self, stmt: &stmt::Function<Object>) -> Result<(), Box<dyn Error>> {
-        let function = crate::function::Function::new(stmt.clone());
-        let fn_obj = Object::Function(Rc::new(RefCell::new(function)).into(), None);
+        let function: function::Function = function::Function::new(stmt.to_owned());
+        let fn_obj = Object::Function(Some(Rc::new(RefCell::new(function))), None);
         self.env.borrow_mut().define(&stmt.name, fn_obj)?;
         Ok(())
     }

@@ -170,16 +170,22 @@ impl Callable for Object {
                     return function(arguments);
                 }
 
-                let func = fun.as_ref().unwrap().borrow_mut();
-                let (expected_len, found_len) = (self.arity(), arguments.len());
-                if expected_len != found_len {
-                    return Err(interpreter.error(
-                        &format!("Expected {} arguments but got {}.", expected_len, found_len),
-                        &func.declaration.name,
-                    ));
+                let mut retunred_v: Object = Object::Nil;
+
+                if let Some(func) = fun {
+                    let (expected_len, found_len) =
+                        (func.borrow_mut().declaration.params.len(), arguments.len());
+                    if expected_len != found_len {
+                        return Err(interpreter.error(
+                            &format!("Expected {} arguments but got {}.", expected_len, found_len),
+                            &func.borrow_mut().declaration.name,
+                        ));
+                    }
+
+                    retunred_v = func.borrow_mut().call(interpreter, arguments, paren)?;
                 }
 
-                func.call(interpreter, arguments, paren)
+                Ok(retunred_v)
             }
             _ => Err(interpreter.error("Can only call functions and classes.", &paren)),
         }

@@ -372,10 +372,11 @@ mod statement {
     ) -> Result<Vec<Rc<RefCell<Box<dyn stmt::Stmt<T>>>>>, Box<dyn Error>> {
         let mut statements: Vec<Rc<RefCell<Box<dyn stmt::Stmt<T>>>>> = Vec::new();
 
-        while !parser.match_::<T>(vec![TokenType::RIGHT_BRACE]) && !parser.is_at_end() {
+        while !parser.check(TokenType::RIGHT_BRACE) && !parser.is_at_end() {
             statements.push(Rc::new(RefCell::new(parser.declaration()?)));
         }
 
+        parser.consume::<T>(TokenType::RIGHT_BRACE, "Expect '}' after block.")?;
         Ok(statements)
     }
 
@@ -490,6 +491,10 @@ mod statement {
             }
         }
         parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")?;
+        parser.consume::<T>(
+            TokenType::LEFT_BRACE,
+            format!("Expect '{{' before {} body.", kind).as_str(),
+        )?;
         let body = block(parser)?;
         Ok(Box::new(stmt::Function::new(name, parameters, body)))
     }

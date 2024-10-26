@@ -35,7 +35,7 @@ impl Callable for Function {
                 .define(&self.declaration.params[i], arguments[i].clone())?;
         }
 
-        interpreter.execute_block(self.declaration.body.clone(), environment)?;
+        interpreter.execute_block(self.declaration.body.clone(), environment.clone())?;
 
         Ok(Object::Nil)
     }
