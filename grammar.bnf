@@ -23,7 +23,8 @@ statement  -> exprStmt
             | block
             | ifStmt
             | whileStmt
-            | forStmt ;
+            | forStmt
+            | retunrStmt ;
 exprStmt   -> expression ";";
 printStmt  -> "print" expression ";";
 varDecl    -> "var" IDENTIFIER ( "=" expression )? ";" ;
@@ -33,4 +34,5 @@ ifStmt     -> "if" "(" expression ")" statement
 while      -> "while" "(" expression ")" statement ;
 forStmt    -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression?  ")" statement ;
 funDecl    -> "fun" function;
-function   -> IDENTIFIER "(" parameters? ")" block ; 
+function   -> IDENTIFIER "(" parameters? ")" block ;
+retunrStmt -> "return" expression? ";" ;

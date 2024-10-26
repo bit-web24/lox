@@ -1,3 +1,5 @@
+use return_v::Return;
+
 use crate::{
     callable,
     env::Environment,
@@ -7,6 +9,8 @@ use crate::{
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
+
+pub mod return_v;
 
 use crate::callable::Callable;
 
@@ -313,8 +317,13 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_return_stmt(&self, stmt: &stmt::Return<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_return_stmt(&mut self, stmt: &stmt::Return<Object>) -> Result<(), Box<dyn Error>> {
+        if let Some(value) = stmt.value.clone() {
+            let value = self.evaluate(value.clone())?;
+            return Err(Box::new(Return { value }));
+        }
+
+        Ok(())
     }
 
     fn visit_var_stmt(&mut self, stmt: &mut stmt::Var<Object>) -> Result<(), Box<dyn Error>> {

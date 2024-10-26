@@ -34,6 +34,8 @@ impl Parser {
             return statement::for_statement(self);
         } else if self.match_::<T>(vec![TokenType::FUN]) {
             return statement::function_definition::<T>(self, "function");
+        } else if self.match_::<T>(vec![TokenType::RETURN]) {
+            return statement::return_statement(self);
         }
 
         statement::expression(self)
@@ -497,5 +499,17 @@ mod statement {
         )?;
         let body = block(parser)?;
         Ok(Box::new(stmt::Function::new(name, parameters, body)))
+    }
+
+    pub fn return_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        let keyword: Token = parser.previous::<T>();
+        let mut value: Option<Box<dyn Expr<T>>> = None;
+        if !parser.check(TokenType::SEMICOLON) {
+            value = Some(parser.expression()?);
+        }
+        parser.consume::<T>(TokenType::SEMICOLON, "Expect ';' after return value.")?;
+        Ok(Box::new(stmt::Return::new(keyword, value)))
     }
 }

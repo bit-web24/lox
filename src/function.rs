@@ -35,7 +35,19 @@ impl Callable for Function {
                 .define(&self.declaration.params[i], arguments[i].clone())?;
         }
 
-        interpreter.execute_block(self.declaration.body.clone(), environment.clone())?;
+        if let Err(err) =
+            interpreter.execute_block(self.declaration.body.clone(), environment.clone())
+        {
+            let v = err
+                .as_ref()
+                .downcast_ref::<crate::interpreter::return_v::Return>();
+
+            if let Some(val) = v {
+                return Ok(val.value.clone());
+            }
+
+            return Err(err);
+        }
 
         Ok(Object::Nil)
     }

@@ -21,5 +21,18 @@ if ((20 < 10) and (10 == 20)) {
 fun rt() {
 	print "hello";
 }
-
 rt();
+
+fun arg(x, y) {
+	print x;
+	print y;
+}
+
+arg(1, 2);
+
+fun ret() {
+return ;
+}
+
+print ret();
+

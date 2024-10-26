@@ -16,7 +16,7 @@ pub trait Visitor<T: Debug> {
     fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
     fn visit_if_stmt(&mut self, stmt: &mut If<T>) -> Result<(), Box<dyn Error>>;
     fn visit_print_stmt(&mut self, stmt: &mut Print<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_return_stmt(&self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
+    fn visit_return_stmt(&mut self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
     fn visit_var_stmt(&mut self, stmt: &mut Var<T>) -> Result<(), Box<dyn Error>>;
     fn visit_while_stmt(&mut self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
 }
@@ -149,13 +149,16 @@ impl<T: Debug> Stmt<T> for Print<T> {
 
 #[derive(Debug)]
 pub struct Return<T> {
-    keyword: Token,
-    value: Box<dyn expr::Expr<T>>,
+    pub keyword: Token,
+    pub value: Option<Rc<RefCell<Box<dyn expr::Expr<T>>>>>,
 }
 
 impl<T> Return<T> {
-    fn new(keyword: Token, value: Box<dyn Expr<T>>) -> Self {
-        Self { keyword, value }
+    pub fn new(keyword: Token, value: Option<Box<dyn Expr<T>>>) -> Self {
+        Self {
+            keyword,
+            value: value.map(|expr| Rc::new(RefCell::new(expr))),
+        }
     }
 }
 
