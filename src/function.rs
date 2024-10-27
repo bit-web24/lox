@@ -12,11 +12,15 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct Function {
     pub declaration: stmt::Function<Object>,
+    pub closeure: Rc<RefCell<Environment>>,
 }
 
 impl Function {
-    pub fn new(declaration: stmt::Function<Object>) -> Self {
-        Self { declaration }
+    pub fn new(declaration: stmt::Function<Object>, closeure: Rc<RefCell<Environment>>) -> Self {
+        Self {
+            declaration,
+            closeure,
+        }
     }
 }
 
@@ -27,7 +31,7 @@ impl Callable for Function {
         arguments: Vec<Object>,
         _paren: Token,
     ) -> Result<Object, Box<dyn Error>> {
-        let environment = Rc::new(RefCell::new(Environment::from(interpreter.env.clone())));
+        let environment = Rc::new(RefCell::new(Environment::from(self.closeure.clone())));
 
         for i in 0..self.declaration.params.len() {
             environment

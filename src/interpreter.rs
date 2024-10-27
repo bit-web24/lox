@@ -293,7 +293,8 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_func_stmt(&self, stmt: &stmt::Function<Object>) -> Result<(), Box<dyn Error>> {
-        let function: function::Function = function::Function::new(stmt.to_owned());
+        let function: function::Function =
+            function::Function::new(stmt.to_owned(), self.env.clone());
         let fn_obj = Object::Function(Some(Rc::new(RefCell::new(function))), None);
         self.env.borrow_mut().define(&stmt.name, fn_obj)?;
         Ok(())
