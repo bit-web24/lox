@@ -1,13 +1,15 @@
 use std::{
+    borrow::Borrow,
+    cell::RefCell,
     error::Error,
     fmt,
     ops::{Add, Div, Mul, Sub},
 };
 
-use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::{callable::Callable, interpreter::Interpreter, stmt::Stmt, token::Token};
+use crate::{callable::Callable, interpreter::Interpreter};
+use crate::{function, token::Token};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -16,8 +18,7 @@ pub enum Object {
     Boolean(bool),
     Nil,
     Function(
-        Vec<Token>,
-        Option<Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>>,
+        Option<Rc<RefCell<function::Function>>>,
         Option<fn(Vec<Object>) -> Result<Object, Box<dyn Error>>>,
     ),
 }
@@ -159,33 +160,32 @@ impl Mul for Object {
 impl Callable for Object {
     fn call(
         &self,
-        mut interpreter: Interpreter,
+        interpreter: Interpreter,
         arguments: Vec<Object>,
         paren: Token,
     ) -> Result<Object, Box<dyn Error>> {
         match self {
-            Object::Function(params, body, fn_ptr) => {
-                let (expected_len, found_len) = (self.arity(), arguments.len());
-                if expected_len != found_len {
-                    return Err(interpreter.error(
-                        &format!("Expected {} arguments but got {}.", expected_len, found_len),
-                        &paren,
-                    ));
-                }
-
-                let returned_val: Object;
-
+            Object::Function(fun, fn_ptr) => {
                 if let Some(function) = fn_ptr {
-                    returned_val = function(arguments)?;
-                } else {
-                    returned_val = interpreter.execute_function(
-                        interpreter.env.clone(),
-                        (params.to_owned(), arguments),
-                        body.clone().unwrap(),
-                    )?;
+                    return function(arguments);
                 }
 
-                Ok(returned_val)
+                let mut retunred_v: Object = Object::Nil;
+
+                if let Some(func) = fun {
+                    let (expected_len, found_len) =
+                        (func.borrow_mut().declaration.params.len(), arguments.len());
+                    if expected_len != found_len {
+                        return Err(interpreter.error(
+                            &format!("Expected {} arguments but got {}.", expected_len, found_len),
+                            &func.borrow_mut().declaration.name,
+                        ));
+                    }
+
+                    retunred_v = func.borrow_mut().call(interpreter, arguments, paren)?;
+                }
+
+                Ok(retunred_v)
             }
             _ => Err(interpreter.error("Can only call functions and classes.", &paren)),
         }
@@ -193,7 +193,7 @@ impl Callable for Object {
 
     fn arity(&self) -> usize {
         match self {
-            Object::Function(params, _, _) => params.len(),
+            Object::Function(fun, _) => fun.as_ref().unwrap().borrow_mut().declaration.params.len(),
             _ => 0,
         }
     }

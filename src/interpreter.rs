@@ -1,22 +1,20 @@
+use return_v::Return;
+
 use crate::{
     callable,
     env::Environment,
     error::{error_types::RuntimeError, LoxError},
-    expr,
+    expr, function,
     object::Object,
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
 
+pub mod return_v;
+
 use crate::callable::Callable;
 
-use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
-    error::Error,
-    ops::{Deref, DerefMut, Not},
-    rc::Rc,
-};
+use std::{borrow::Borrow, cell::RefCell, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
@@ -36,13 +34,13 @@ impl Interpreter {
             env: Rc::new(RefCell::new(Environment::new())),
         };
 
-        for function in callable::get_native_functions() {
+        for (name, function) in callable::get_native_functions() {
             interpreter
                 .env
                 .borrow_mut()
                 .define(
-                    &Token::new(TokenType::IDENTIFIER, function.0.to_string(), None, 0),
-                    function.1,
+                    &Token::new(TokenType::IDENTIFIER, name.to_string(), None, 0),
+                    function,
                 )
                 .unwrap();
         }
@@ -92,23 +90,6 @@ impl Interpreter {
 
         self.env = previous;
         Ok(())
-    }
-
-    pub fn execute_function(
-        &mut self,
-        environment: Rc<RefCell<Environment>>,
-        (parmas, arguments): (Vec<Token>, Vec<Object>),
-        statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
-    ) -> Result<Object, Box<dyn Error>> {
-        for (token, argument) in parmas.iter().zip(arguments.iter()) {
-            environment
-                .borrow_mut()
-                .define(token, argument.to_owned())?;
-        }
-
-        self.execute_block(statements, environment.clone())?;
-
-        Ok(Object::Nil)
     }
 
     pub fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
@@ -198,7 +179,7 @@ impl expr::Visitor<Object> for Interpreter {
             .iter()
             .map(|arg| self.evaluate(arg.clone()))
             .collect::<Result<Vec<Object>, Box<dyn Error>>>()?;
-        let returned_v = function.call(self.clone(), arguments, expr.paren.clone())?;
+        let returned_v = function.call(self.clone(), arguments, expr.paren.to_owned())?;
 
         Ok(returned_v)
     }
@@ -312,7 +293,11 @@ impl stmt::Visitor<Object> for Interpreter {
     }
 
     fn visit_func_stmt(&self, stmt: &stmt::Function<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+        let function: function::Function =
+            function::Function::new(stmt.to_owned(), self.env.clone());
+        let fn_obj = Object::Function(Some(Rc::new(RefCell::new(function))), None);
+        self.env.borrow_mut().define(&stmt.name, fn_obj)?;
+        Ok(())
     }
 
     fn visit_if_stmt(&mut self, stmt: &mut stmt::If<Object>) -> Result<(), Box<dyn Error>> {
@@ -333,8 +318,13 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_return_stmt(&self, stmt: &stmt::Return<Object>) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_return_stmt(&mut self, stmt: &stmt::Return<Object>) -> Result<(), Box<dyn Error>> {
+        if let Some(value) = stmt.value.clone() {
+            let value = self.evaluate(value.clone())?;
+            return Err(Box::new(Return { value }));
+        }
+
+        Ok(())
     }
 
     fn visit_var_stmt(&mut self, stmt: &mut stmt::Var<Object>) -> Result<(), Box<dyn Error>> {

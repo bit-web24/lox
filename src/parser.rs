@@ -33,7 +33,9 @@ impl Parser {
         } else if self.match_::<T>(vec![TokenType::FOR]) {
             return statement::for_statement(self);
         } else if self.match_::<T>(vec![TokenType::FUN]) {
-            return statement::function_definition(self);
+            return statement::function_definition::<T>(self, "function");
+        } else if self.match_::<T>(vec![TokenType::RETURN]) {
+            return statement::return_statement(self);
         }
 
         statement::expression(self)
@@ -102,7 +104,7 @@ impl Parser {
         Err(self.error(self.peek(), message))
     }
 
-    fn synchronize<T>(&mut self) {
+    fn _synchronize<T>(&mut self) {
         self.advance::<T>();
         while !self.is_at_end() {
             if self.previous::<T>().type_ == TokenType::SEMICOLON {
@@ -139,10 +141,8 @@ mod expression {
     use crate::expr::{self, Expr};
     use crate::object::Object;
     use crate::token::{token_type::TokenType, Token};
-    use std::cell::RefCell;
     use std::error::Error;
     use std::fmt::Debug;
-    use std::rc::Rc;
 
     pub fn assignment<T: 'static + Debug>(
         parser: &mut Parser,
@@ -240,7 +240,7 @@ mod expression {
 
         if parser.match_::<T>(vec![TokenType::NUMBER, TokenType::STRING]) {
             return Ok(Box::new(expr::Literal::new(
-                parser.previous::<T>().literal.unwrap(),
+                *parser.previous::<T>().literal.unwrap(),
             )));
         }
 
@@ -314,7 +314,7 @@ mod expression {
             }
         }
 
-        let paren = parser.consume::<T>(TokenType::COMMA, "Expected ')' after arguments.")?;
+        let paren = parser.consume::<T>(TokenType::RIGHT_PAREN, "Expected ')' after arguments.")?;
 
         Ok(Box::new(expr::Call::new(callee, paren, arguments)))
     }
@@ -374,10 +374,11 @@ mod statement {
     ) -> Result<Vec<Rc<RefCell<Box<dyn stmt::Stmt<T>>>>>, Box<dyn Error>> {
         let mut statements: Vec<Rc<RefCell<Box<dyn stmt::Stmt<T>>>>> = Vec::new();
 
-        while !parser.match_::<T>(vec![TokenType::RIGHT_BRACE]) && !parser.is_at_end() {
+        while !parser.check(TokenType::RIGHT_BRACE) && !parser.is_at_end() {
             statements.push(Rc::new(RefCell::new(parser.declaration()?)));
         }
 
+        parser.consume::<T>(TokenType::RIGHT_BRACE, "Expect '}' after block.")?;
         Ok(statements)
     }
 
@@ -466,9 +467,13 @@ mod statement {
 
     pub fn function_definition<T: 'static + Debug>(
         parser: &mut Parser,
+        kind: &str,
     ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
         let name: Token = parser
-            .consume::<T>(TokenType::IDENTIFIER, "Expect function name.")?
+            .consume::<T>(
+                TokenType::IDENTIFIER,
+                format!("Expect {} name.", kind).as_str(),
+            )?
             .to_owned();
         parser.consume::<T>(TokenType::LEFT_PAREN, "Expect '(' after function name.")?;
         let mut parameters: Vec<Token> = Vec::new();
@@ -488,7 +493,23 @@ mod statement {
             }
         }
         parser.consume::<T>(TokenType::RIGHT_PAREN, "Expect ')' after parameters.")?;
-        let body: Box<dyn Stmt<T>> = parser.statement()?;
+        parser.consume::<T>(
+            TokenType::LEFT_BRACE,
+            format!("Expect '{{' before {} body.", kind).as_str(),
+        )?;
+        let body = block(parser)?;
         Ok(Box::new(stmt::Function::new(name, parameters, body)))
+    }
+
+    pub fn return_statement<T: 'static + Debug>(
+        parser: &mut Parser,
+    ) -> Result<Box<dyn Stmt<T>>, Box<dyn Error>> {
+        let keyword: Token = parser.previous::<T>();
+        let mut value: Option<Box<dyn Expr<T>>> = None;
+        if !parser.check(TokenType::SEMICOLON) {
+            value = Some(parser.expression()?);
+        }
+        parser.consume::<T>(TokenType::SEMICOLON, "Expect ';' after return value.")?;
+        Ok(Box::new(stmt::Return::new(keyword, value)))
     }
 }

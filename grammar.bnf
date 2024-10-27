@@ -16,13 +16,15 @@ primary    -> NUMBER | STRING | "true" | "false" | "nil"
 
 program    -> declaration* EOF;
 declaration -> varDecl
-            | statement ;
+            | statement
+            | funDecl ;
 statement  -> exprStmt
             | printStmt
             | block
             | ifStmt
             | whileStmt
-            | forStmt ;
+            | forStmt
+            | retunrStmt ;
 exprStmt   -> expression ";";
 printStmt  -> "print" expression ";";
 varDecl    -> "var" IDENTIFIER ( "=" expression )? ";" ;
@@ -31,3 +33,6 @@ ifStmt     -> "if" "(" expression ")" statement
               ( "else" statement )? ;
 while      -> "while" "(" expression ")" statement ;
 forStmt    -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression?  ")" statement ;
+funDecl    -> "fun" function;
+function   -> IDENTIFIER "(" parameters? ")" block ;
+retunrStmt -> "return" expression? ";" ;

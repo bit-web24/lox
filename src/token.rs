@@ -7,7 +7,7 @@ use token_type::TokenType;
 pub struct Token {
     pub type_: TokenType,
     pub lexeme: String,
-    pub literal: Option<Object>,
+    pub literal: Option<Box<Object>>,
     pub line: i64,
 }
 
@@ -16,7 +16,7 @@ impl Token {
         Self {
             type_,
             lexeme,
-            literal,
+            literal: literal.map(|x| Box::new(x)),
             line,
         }
     }
