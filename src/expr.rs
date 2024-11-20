@@ -11,7 +11,7 @@ pub trait Expr<T: Debug>: Debug {
 }
 
 pub trait Visitor<T: Debug> {
-    fn visit_assign_expr(&mut self, expr: &mut Assign<T>) -> Result<T, Box<dyn Error>>; // a = 30;
+    fn visit_assign_expr(&mut self, expr: &Assign<T>) -> Result<T, Box<dyn Error>>; // a = 30;
     fn visit_binary_expr(&mut self, expr: &mut Binary<T>) -> Result<T, Box<dyn Error>>;
     fn visit_call_expr(&mut self, expr: &Call<T>) -> Result<T, Box<dyn Error>>;
     fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
@@ -25,7 +25,7 @@ pub trait Visitor<T: Debug> {
     fn visit_variable_expr(&self, expr: &Variable) -> Result<T, Box<dyn Error>>; // var a = 20;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assign<T: Debug> {
     pub name: Token,
     pub value: Rc<RefCell<Box<dyn Expr<T>>>>,
@@ -295,7 +295,7 @@ impl<T: Debug + 'static> Expr<T> for Unary<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     pub name: Token,
 }

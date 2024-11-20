@@ -42,6 +42,26 @@ impl Environment {
         ))
     }
 
+    pub fn get_at(&self, distance: i32, name: String) -> Result<Object, Box<dyn Error>> {
+        let env = self.ancestor(distance)?;
+        if let Some(val) = env.borrow().values.get(&name) {
+            return Ok(val.to_owned());
+        }
+
+        Ok(Object::Nil)
+    }
+
+    pub fn ancestor(&self, distance: i32) -> Result<Rc<RefCell<Environment>>, Box<dyn Error>> {
+        let mut environ = Rc::new(RefCell::new(self.clone()));
+
+        for _ in 0..distance {
+            let x = environ.borrow().enclosing.clone().unwrap();
+            environ = x;
+        }
+
+        return Ok(environ);
+    }
+
     pub fn define(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {
         if !self.values.contains_key(token.lexeme.as_str()) {
             self.values.insert(token.lexeme.to_owned(), value);
@@ -54,9 +74,9 @@ impl Environment {
         ))
     }
 
-    pub fn assign(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {
+    pub fn assign(&mut self, token: &Token, value: &Object) -> Result<(), Box<dyn Error>> {
         if self.values.contains_key(&token.lexeme) {
-            self.values.insert(token.lexeme.clone(), value);
+            self.values.insert(token.lexeme.clone(), value.to_owned());
             return Ok(());
         }
 
@@ -68,6 +88,19 @@ impl Environment {
             format!("Undefined variable '{}'.", token.lexeme),
             token.clone(),
         ))
+    }
+
+    pub fn assign_at(
+        &self,
+        distance: i32,
+        name: &Token,
+        value: &Object,
+    ) -> Result<(), Box<dyn Error>> {
+        self.ancestor(distance)?
+            .borrow_mut()
+            .values
+            .insert(name.lexeme.clone(), value.to_owned());
+        Ok(())
     }
 
     fn error(message: String, token: Token) -> Box<dyn Error> {

@@ -4,21 +4,25 @@ use crate::{
     callable,
     env::Environment,
     error::{error_types::RuntimeError, LoxError},
-    expr, function,
+    expr::{self, Expr},
+    function,
     object::Object,
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
 
+mod expr_key;
 pub mod return_v;
 
 use crate::callable::Callable;
-
-use std::{borrow::Borrow, cell::RefCell, error::Error, ops::Not, rc::Rc};
+use expr_key::ExprKey;
+use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     pub env: Rc<RefCell<Environment>>,
+    pub globals: Rc<RefCell<Environment>>,
+    pub locals: HashMap<ExprKey, i32>,
 }
 
 impl Interpreter {
@@ -30,13 +34,16 @@ impl Interpreter {
     }
 
     pub fn new() -> Self {
+        let environ = Rc::new(RefCell::new(Environment::new()));
         let interpreter = Self {
-            env: Rc::new(RefCell::new(Environment::new())),
+            env: environ.clone(),
+            globals: environ.clone(),
+            locals: HashMap::new(),
         };
 
         for (name, function) in callable::get_native_functions() {
             interpreter
-                .env
+                .globals
                 .borrow_mut()
                 .define(
                     &Token::new(TokenType::IDENTIFIER, name.to_string(), None, 0),
@@ -68,12 +75,34 @@ impl Interpreter {
 
         Ok(Object::Nil)
     }
+
     pub fn execute(
         &mut self,
         stmt: Rc<RefCell<Box<dyn Stmt<Object>>>>,
     ) -> Result<(), Box<dyn Error>> {
         stmt.borrow_mut().accept(self)?;
         Ok(())
+    }
+
+    pub fn resolve(&mut self, expr: Box<dyn Expr<Object>>, depth: i32) {
+        self.locals.insert(
+            ExprKey {
+                expr: Rc::new(expr),
+            },
+            depth,
+        );
+    }
+
+    pub fn lookup_variable(
+        &self,
+        name: &Token,
+        expr: Rc<Box<dyn Expr<Object>>>,
+    ) -> Result<Object, Box<dyn Error>> {
+        if let Some(distance) = self.locals.get(&ExprKey { expr }) {
+            return self.env.borrow().get_at(*distance, name.lexeme.clone());
+        } else {
+            return self.globals.borrow().get(name);
+        }
     }
 
     pub fn execute_block(
@@ -107,12 +136,17 @@ impl expr::Visitor<Object> for Interpreter {
         Ok(expr.value.clone())
     }
 
-    fn visit_assign_expr(
-        &mut self,
-        expr: &mut expr::Assign<Object>,
-    ) -> Result<Object, Box<dyn Error>> {
+    fn visit_assign_expr(&mut self, expr: &expr::Assign<Object>) -> Result<Object, Box<dyn Error>> {
         let value = self.evaluate(expr.value.clone())?;
-        self.env.borrow_mut().assign(&expr.name, value.clone())?;
+
+        if let Some(distance) = self.locals.get(&ExprKey {
+            expr: Rc::new(Box::new(expr.clone())),
+        }) {
+            self.env.borrow().assign_at(*distance, &expr.name, &value);
+        } else {
+            self.globals.borrow_mut().assign(&expr.name, &value);
+        }
+
         Ok(value)
     }
 
@@ -201,8 +235,8 @@ impl expr::Visitor<Object> for Interpreter {
     ) -> Result<Object, Box<dyn Error>> {
         let left = self.evaluate(expr.left.clone())?;
 
-        let mut get_truth = |token_type: &TokenType| {
-            let mut truth = Interpreter::is_truthy(left.borrow());
+        let get_truth = |token_type: &TokenType| {
+            let mut truth = Interpreter::is_truthy(&left);
             truth = if token_type.eq(&TokenType::AND) {
                 truth.not()
             } else {
@@ -210,13 +244,13 @@ impl expr::Visitor<Object> for Interpreter {
             };
 
             if truth {
-                Ok(left.borrow().to_owned())
+                Ok(left)
             } else {
                 Ok(self.evaluate(expr.right.clone())?)
             }
         };
 
-        match expr.operator.type_.borrow() {
+        match expr.operator.type_ {
             TokenType::AND => get_truth(&TokenType::AND),
             TokenType::OR => get_truth(&TokenType::OR),
             _ => Err(self.error("Unexpected Token", &expr.operator)),
@@ -266,8 +300,8 @@ impl expr::Visitor<Object> for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        let value = self.env.borrow_mut().get(&expr.name)?;
-        Ok(value)
+        let value = self.lookup_variable(&expr.name, Rc::new(Box::new(expr.clone())));
+        value
     }
 }
 
