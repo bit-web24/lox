@@ -142,9 +142,9 @@ impl expr::Visitor<Object> for Interpreter {
         if let Some(distance) = self.locals.get(&ExprKey {
             expr: Rc::new(Box::new(expr.clone())),
         }) {
-            self.env.borrow().assign_at(*distance, &expr.name, &value);
+            self.env.borrow().assign_at(*distance, &expr.name, &value)?;
         } else {
-            self.globals.borrow_mut().assign(&expr.name, &value);
+            self.globals.borrow_mut().assign(&expr.name, &value)?;
         }
 
         Ok(value)
