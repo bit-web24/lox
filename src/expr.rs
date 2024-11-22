@@ -5,34 +5,34 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-pub trait Expr<T: Debug>: Debug {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>>;
+pub trait Expr: Debug {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>>;
     fn as_any(&self) -> &dyn Any;
 }
 
-pub trait Visitor<T: Debug> {
-    fn visit_assign_expr(&mut self, expr: &Assign<T>) -> Result<T, Box<dyn Error>>; // a = 30;
-    fn visit_binary_expr(&mut self, expr: &mut Binary<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_call_expr(&mut self, expr: &Call<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_get_expr(&self, expr: &Get<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_group_expr(&mut self, expr: &mut Grouping<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_literal_expr(&self, expr: &Literal) -> Result<T, Box<dyn Error>>;
-    fn visit_logical_expr(&mut self, expr: &Logical<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_set_expr(&self, expr: &Set<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_super_expr(&self, expr: &Super) -> Result<T, Box<dyn Error>>;
-    fn visit_this_expr(&self, expr: &This) -> Result<T, Box<dyn Error>>;
-    fn visit_unary_expr(&mut self, expr: &mut Unary<T>) -> Result<T, Box<dyn Error>>;
-    fn visit_variable_expr(&self, expr: &Variable) -> Result<T, Box<dyn Error>>; // var a = 20;
+pub trait Visitor {
+    fn visit_assign_expr(&mut self, expr: &Assign) -> Result<Object, Box<dyn Error>>; // a = 30;
+    fn visit_binary_expr(&mut self, expr: &mut Binary) -> Result<Object, Box<dyn Error>>;
+    fn visit_call_expr(&mut self, expr: &Call) -> Result<Object, Box<dyn Error>>;
+    fn visit_get_expr(&self, expr: &Get) -> Result<Object, Box<dyn Error>>;
+    fn visit_group_expr(&mut self, expr: &mut Grouping) -> Result<Object, Box<dyn Error>>;
+    fn visit_literal_expr(&self, expr: &Literal) -> Result<Object, Box<dyn Error>>;
+    fn visit_logical_expr(&mut self, expr: &Logical) -> Result<Object, Box<dyn Error>>;
+    fn visit_set_expr(&self, expr: &Set) -> Result<Object, Box<dyn Error>>;
+    fn visit_super_expr(&self, expr: &Super) -> Result<Object, Box<dyn Error>>;
+    fn visit_this_expr(&self, expr: &This) -> Result<Object, Box<dyn Error>>;
+    fn visit_unary_expr(&mut self, expr: &mut Unary) -> Result<Object, Box<dyn Error>>;
+    fn visit_variable_expr(&self, expr: &Variable) -> Result<Object, Box<dyn Error>>; // var a = 20;
 }
 
 #[derive(Debug, Clone)]
-pub struct Assign<T: Debug> {
+pub struct Assign {
     pub name: Token,
-    pub value: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub value: Rc<RefCell<Box<dyn Expr>>>,
 }
 
-impl<T: Debug> Assign<T> {
-    pub fn new(name: Token, value: Box<dyn Expr<T>>) -> Self {
+impl Assign {
+    pub fn new(name: Token, value: Box<dyn Expr>) -> Self {
         Self {
             name,
             value: Rc::new(RefCell::new(value)),
@@ -40,8 +40,8 @@ impl<T: Debug> Assign<T> {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Assign<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Assign {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_assign_expr(self)
     }
 
@@ -51,14 +51,14 @@ impl<T: Debug + 'static> Expr<T> for Assign<T> {
 }
 
 #[derive(Debug)]
-pub struct Binary<T: Debug> {
-    pub left: Rc<RefCell<Box<dyn Expr<T>>>>,
+pub struct Binary {
+    pub left: Rc<RefCell<Box<dyn Expr>>>,
     pub operator: Token,
-    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub right: Rc<RefCell<Box<dyn Expr>>>,
 }
 
-impl<T: Debug> Binary<T> {
-    pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
+impl Binary {
+    pub fn new(left: Box<dyn Expr>, operator: Token, right: Box<dyn Expr>) -> Self {
         Self {
             left: Rc::new(RefCell::new(left)),
             operator,
@@ -67,8 +67,8 @@ impl<T: Debug> Binary<T> {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Binary<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Binary {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_binary_expr(self)
     }
 
@@ -78,14 +78,14 @@ impl<T: Debug + 'static> Expr<T> for Binary<T> {
 }
 
 #[derive(Debug)]
-pub struct Call<T: Debug> {
-    pub callee: Rc<RefCell<Box<dyn Expr<T>>>>,
+pub struct Call {
+    pub callee: Rc<RefCell<Box<dyn Expr>>>,
     pub paren: Token,
-    pub arguments: Vec<Rc<RefCell<Box<dyn Expr<T>>>>>,
+    pub arguments: Vec<Rc<RefCell<Box<dyn Expr>>>>,
 }
 
-impl<T: Debug> Call<T> {
-    pub fn new(callee: Box<dyn Expr<T>>, paren: Token, arguments: Vec<Box<dyn Expr<T>>>) -> Self {
+impl Call {
+    pub fn new(callee: Box<dyn Expr>, paren: Token, arguments: Vec<Box<dyn Expr>>) -> Self {
         Self {
             callee: Rc::new(RefCell::new(callee)),
             paren,
@@ -97,8 +97,8 @@ impl<T: Debug> Call<T> {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Call<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Call {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_call_expr(self)
     }
 
@@ -108,19 +108,19 @@ impl<T: Debug + 'static> Expr<T> for Call<T> {
 }
 
 #[derive(Debug)]
-pub struct Get<T: Debug> {
-    object: Box<dyn Expr<T>>,
+pub struct Get {
+    object: Box<dyn Expr>,
     name: Token,
 }
 
-impl<T: Debug> Get<T> {
-    fn new(object: Box<dyn Expr<T>>, name: Token) -> Self {
+impl Get {
+    fn new(object: Box<dyn Expr>, name: Token) -> Self {
         Self { object, name }
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Get<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Get {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_get_expr(self)
     }
 
@@ -130,20 +130,20 @@ impl<T: Debug + 'static> Expr<T> for Get<T> {
 }
 
 #[derive(Debug)]
-pub struct Grouping<T: Debug> {
-    pub expression: Rc<RefCell<Box<dyn Expr<T>>>>,
+pub struct Grouping {
+    pub expression: Rc<RefCell<Box<dyn Expr>>>,
 }
 
-impl<T: Debug> Grouping<T> {
-    pub fn new(expression: Box<dyn Expr<T>>) -> Self {
+impl Grouping {
+    pub fn new(expression: Box<dyn Expr>) -> Self {
         Self {
             expression: Rc::new(RefCell::new(expression)),
         }
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Grouping<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Grouping {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_group_expr(self)
     }
 
@@ -163,8 +163,8 @@ impl Literal {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Literal {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Literal {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_literal_expr(self)
     }
 
@@ -174,14 +174,14 @@ impl<T: Debug + 'static> Expr<T> for Literal {
 }
 
 #[derive(Debug)]
-pub struct Logical<T: Debug> {
-    pub left: Rc<RefCell<Box<dyn Expr<T>>>>,
+pub struct Logical {
+    pub left: Rc<RefCell<Box<dyn Expr>>>,
     pub operator: Token,
-    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub right: Rc<RefCell<Box<dyn Expr>>>,
 }
 
-impl<T: Debug> Logical<T> {
-    pub fn new(left: Box<dyn Expr<T>>, operator: Token, right: Box<dyn Expr<T>>) -> Self {
+impl Logical {
+    pub fn new(left: Box<dyn Expr>, operator: Token, right: Box<dyn Expr>) -> Self {
         Self {
             left: Rc::new(RefCell::new(left)),
             operator,
@@ -190,8 +190,8 @@ impl<T: Debug> Logical<T> {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Logical<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Logical {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_logical_expr(self)
     }
 
@@ -201,14 +201,14 @@ impl<T: Debug + 'static> Expr<T> for Logical<T> {
 }
 
 #[derive(Debug)]
-pub struct Set<T: Debug> {
-    object: Box<dyn Expr<T>>,
+pub struct Set {
+    object: Box<dyn Expr>,
     name: Token,
-    value: Box<dyn Expr<T>>,
+    value: Box<dyn Expr>,
 }
 
-impl<T: Debug> Set<T> {
-    fn new(object: Box<dyn Expr<T>>, name: Token, value: Box<dyn Expr<T>>) -> Self {
+impl Set {
+    fn new(object: Box<dyn Expr>, name: Token, value: Box<dyn Expr>) -> Self {
         Self {
             object,
             name,
@@ -217,8 +217,8 @@ impl<T: Debug> Set<T> {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Set<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Set {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_set_expr(self)
     }
 
@@ -239,8 +239,8 @@ impl Super {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Super {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Super {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_super_expr(self)
     }
 
@@ -260,8 +260,8 @@ impl This {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for This {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for This {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_this_expr(self)
     }
 
@@ -271,13 +271,13 @@ impl<T: Debug + 'static> Expr<T> for This {
 }
 
 #[derive(Debug)]
-pub struct Unary<T: Debug> {
+pub struct Unary {
     pub operator: Token,
-    pub right: Rc<RefCell<Box<dyn Expr<T>>>>,
+    pub right: Rc<RefCell<Box<dyn Expr>>>,
 }
 
-impl<T: Debug> Unary<T> {
-    pub fn new(operator: Token, right: Box<dyn Expr<T>>) -> Self {
+impl Unary {
+    pub fn new(operator: Token, right: Box<dyn Expr>) -> Self {
         Self {
             operator,
             right: Rc::new(RefCell::new(right)),
@@ -285,8 +285,8 @@ impl<T: Debug> Unary<T> {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Unary<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Unary {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_unary_expr(self)
     }
 
@@ -306,8 +306,8 @@ impl Variable {
     }
 }
 
-impl<T: Debug + 'static> Expr<T> for Variable {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<T, Box<dyn Error>> {
+impl Expr for Variable {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>> {
         visitor.visit_variable_expr(self)
     }
 

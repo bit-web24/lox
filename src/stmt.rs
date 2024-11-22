@@ -1,54 +1,54 @@
 use crate::expr::{self, Expr};
 use crate::token::Token;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-pub trait Stmt<T: Debug>: Debug {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>>;
+pub trait Stmt: Debug {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>>;
 }
 
-pub trait Visitor<T: Debug> {
-    fn visit_block_stmt(&mut self, stmt: &Block<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_class_stmt(&self, stmt: &Class<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_expr_stmt(&mut self, stmt: &mut Expression<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_func_stmt(&self, stmt: &Function<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_if_stmt(&mut self, stmt: &mut If<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_print_stmt(&mut self, stmt: &mut Print<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_return_stmt(&mut self, stmt: &Return<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_var_stmt(&mut self, stmt: &mut Var<T>) -> Result<(), Box<dyn Error>>;
-    fn visit_while_stmt(&mut self, stmt: &While<T>) -> Result<(), Box<dyn Error>>;
+pub trait Visitor {
+    fn visit_block_stmt(&mut self, stmt: &Block) -> Result<(), Box<dyn Error>>;
+    fn visit_class_stmt(&self, stmt: &Class) -> Result<(), Box<dyn Error>>;
+    fn visit_expr_stmt(&mut self, stmt: &mut Expression) -> Result<(), Box<dyn Error>>;
+    fn visit_func_stmt(&self, stmt: &Function) -> Result<(), Box<dyn Error>>;
+    fn visit_if_stmt(&mut self, stmt: &mut If) -> Result<(), Box<dyn Error>>;
+    fn visit_print_stmt(&mut self, stmt: &mut Print) -> Result<(), Box<dyn Error>>;
+    fn visit_return_stmt(&mut self, stmt: &Return) -> Result<(), Box<dyn Error>>;
+    fn visit_var_stmt(&mut self, stmt: &mut Var) -> Result<(), Box<dyn Error>>;
+    fn visit_while_stmt(&mut self, stmt: &While) -> Result<(), Box<dyn Error>>;
 }
 
 #[derive(Debug)]
-pub struct Block<T> {
-    pub statements: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>,
+pub struct Block {
+    pub statements: Vec<Rc<RefCell<Box<dyn Stmt>>>>,
 }
 
-impl<T> Block<T> {
-    pub fn new(statements: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>) -> Self {
+impl Block {
+    pub fn new(statements: Vec<Rc<RefCell<Box<dyn Stmt>>>>) -> Self {
         Self {
             statements: statements,
         }
     }
 }
 
-impl<T: Debug> Stmt<T> for Block<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Block {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_block_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct Class<T> {
+pub struct Class {
     name: Token,
     superclass: expr::Variable,
-    methods: Vec<Function<T>>,
+    methods: Vec<Function>,
 }
 
-impl<T> Class<T> {
-    fn new(name: Token, superclass: expr::Variable, methods: Vec<Function<T>>) -> Self {
+impl Class {
+    fn new(name: Token, superclass: expr::Variable, methods: Vec<Function>) -> Self {
         Self {
             name,
             superclass,
@@ -57,62 +57,62 @@ impl<T> Class<T> {
     }
 }
 
-impl<T: Debug> Stmt<T> for Class<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Class {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_class_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct Expression<T> {
-    pub expression: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
+pub struct Expression {
+    pub expression: Rc<RefCell<Box<dyn expr::Expr>>>,
 }
 
-impl<T> Expression<T> {
-    pub fn new(expression: Box<dyn Expr<T>>) -> Self {
+impl Expression {
+    pub fn new(expression: Box<dyn Expr>) -> Self {
         Self {
             expression: Rc::new(RefCell::new(expression)),
         }
     }
 }
 
-impl<T: Debug> Stmt<T> for Expression<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Expression {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_expr_stmt(self);
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Function<T> {
+pub struct Function {
     pub name: Token,
     pub params: Vec<Token>,
-    pub body: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>,
+    pub body: Vec<Rc<RefCell<Box<dyn Stmt>>>>,
 }
 
-impl<T> Function<T> {
-    pub fn new(name: Token, params: Vec<Token>, body: Vec<Rc<RefCell<Box<dyn Stmt<T>>>>>) -> Self {
+impl Function {
+    pub fn new(name: Token, params: Vec<Token>, body: Vec<Rc<RefCell<Box<dyn Stmt>>>>) -> Self {
         Self { name, params, body }
     }
 }
 
-impl<T: Debug> Stmt<T> for Function<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Function {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_func_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct If<T> {
-    pub condition: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
-    pub then_branch: Rc<RefCell<Box<dyn Stmt<T>>>>,
-    pub else_branch: Option<Rc<RefCell<Box<dyn Stmt<T>>>>>,
+pub struct If {
+    pub condition: Rc<RefCell<Box<dyn expr::Expr>>>,
+    pub then_branch: Rc<RefCell<Box<dyn Stmt>>>,
+    pub else_branch: Option<Rc<RefCell<Box<dyn Stmt>>>>,
 }
 
-impl<T> If<T> {
+impl If {
     pub fn new(
-        condition: Box<dyn expr::Expr<T>>,
-        then_branch: Box<dyn Stmt<T>>,
-        else_branch: Option<Box<dyn Stmt<T>>>,
+        condition: Box<dyn expr::Expr>,
+        then_branch: Box<dyn Stmt>,
+        else_branch: Option<Box<dyn Stmt>>,
     ) -> Self {
         Self {
             condition: Rc::new(RefCell::new(condition)),
@@ -122,39 +122,39 @@ impl<T> If<T> {
     }
 }
 
-impl<T: Debug> Stmt<T> for If<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for If {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_if_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct Print<T> {
-    pub expression: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
+pub struct Print {
+    pub expression: Rc<RefCell<Box<dyn expr::Expr>>>,
 }
 
-impl<T> Print<T> {
-    pub fn new(expression: Box<dyn expr::Expr<T>>) -> Self {
+impl Print {
+    pub fn new(expression: Box<dyn expr::Expr>) -> Self {
         Self {
             expression: Rc::new(RefCell::new(expression)),
         }
     }
 }
 
-impl<T: Debug> Stmt<T> for Print<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Print {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_print_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct Return<T> {
+pub struct Return {
     pub keyword: Token,
-    pub value: Option<Rc<RefCell<Box<dyn expr::Expr<T>>>>>,
+    pub value: Option<Rc<RefCell<Box<dyn expr::Expr>>>>,
 }
 
-impl<T> Return<T> {
-    pub fn new(keyword: Token, value: Option<Box<dyn Expr<T>>>) -> Self {
+impl Return {
+    pub fn new(keyword: Token, value: Option<Box<dyn Expr>>) -> Self {
         Self {
             keyword,
             value: value.map(|expr| Rc::new(RefCell::new(expr))),
@@ -162,20 +162,20 @@ impl<T> Return<T> {
     }
 }
 
-impl<T: Debug> Stmt<T> for Return<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Return {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_return_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct Var<T> {
+pub struct Var {
     pub name: Token,
-    pub initializer: Option<Rc<RefCell<Box<dyn expr::Expr<T>>>>>,
+    pub initializer: Option<Rc<RefCell<Box<dyn expr::Expr>>>>,
 }
 
-impl<T> Var<T> {
-    pub fn new(name: Token, initializer: Option<Box<dyn Expr<T>>>) -> Self {
+impl Var {
+    pub fn new(name: Token, initializer: Option<Box<dyn Expr>>) -> Self {
         Self {
             name,
             initializer: initializer.map(|init| Rc::new(RefCell::new(init))),
@@ -183,20 +183,20 @@ impl<T> Var<T> {
     }
 }
 
-impl<T: Debug> Stmt<T> for Var<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for Var {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_var_stmt(self);
     }
 }
 
 #[derive(Debug)]
-pub struct While<T> {
-    pub condition: Rc<RefCell<Box<dyn expr::Expr<T>>>>,
-    pub body: Rc<RefCell<Box<dyn Stmt<T>>>>,
+pub struct While {
+    pub condition: Rc<RefCell<Box<dyn expr::Expr>>>,
+    pub body: Rc<RefCell<Box<dyn Stmt>>>,
 }
 
-impl<T> While<T> {
-    pub fn new(condition: Box<dyn Expr<T>>, body: Box<dyn Stmt<T>>) -> Self {
+impl While {
+    pub fn new(condition: Box<dyn Expr>, body: Box<dyn Stmt>) -> Self {
         Self {
             condition: Rc::new(RefCell::new(condition)),
             body: Rc::new(RefCell::new(body)),
@@ -204,8 +204,8 @@ impl<T> While<T> {
     }
 }
 
-impl<T: Debug> Stmt<T> for While<T> {
-    fn accept(&mut self, visitor: &mut dyn Visitor<T>) -> Result<(), Box<dyn Error>> {
+impl Stmt for While {
+    fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<(), Box<dyn Error>> {
         return visitor.visit_while_stmt(self);
     }
 }

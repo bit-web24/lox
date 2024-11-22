@@ -1,10 +1,10 @@
-use crate::{expr::Expr, object::Object};
+use crate::expr::Expr;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct ExprKey {
-    pub expr: Rc<Box<dyn Expr<Object>>>,
+    pub expr: Rc<Box<dyn Expr>>,
 }
 
 impl PartialEq for ExprKey {
