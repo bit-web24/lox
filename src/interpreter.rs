@@ -307,7 +307,7 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_func_stmt(&self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
+    fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
         let function: function::Function =
             function::Function::new(stmt.to_owned(), self.env.clone());
         let fn_obj = Object::Function(Some(Rc::new(RefCell::new(function))), None);

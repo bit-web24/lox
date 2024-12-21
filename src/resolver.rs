@@ -88,6 +88,15 @@ impl<'a> Resolver<'a> {
             }
         }
     }
+    
+    pub fn resolve_func(&mut self, func: &stmt::Function) {
+        self.begin_scope();
+        for param in &func.params {
+            self.declare(param.lexeme.as_str());
+            self.define(param.lexeme.as_str());
+        }
+        self.end_scope().unwrap();
+    }
 }
 
 impl<'a> stmt::Visitor for Resolver<'a> {
@@ -106,8 +115,11 @@ impl<'a> stmt::Visitor for Resolver<'a> {
         todo!()
     }
 
-    fn visit_func_stmt(&self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
+        self.declare(stmt.name.lexeme.as_str());
+        self.define(stmt.name.lexeme.as_str());
+        self.resolve_func(stmt);
+        Ok(())
     }
 
     fn visit_if_stmt(&mut self, stmt: &mut stmt::If) -> Result<(), Box<dyn Error>> {
@@ -142,7 +154,9 @@ impl<'a> stmt::Visitor for Resolver<'a> {
 
 impl<'a> expr::Visitor for Resolver<'a> {
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(expr.value.borrow_mut().as_mut())?;
+        self.resolve_local(expr, expr.name.lexeme.as_str());
+        Ok(Object::Nil)
     }
 
     fn visit_binary_expr(&mut self, expr: &mut expr::Binary) -> Result<Object, Box<dyn Error>> {

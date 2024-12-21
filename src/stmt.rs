@@ -13,7 +13,7 @@ pub trait Visitor {
     fn visit_block_stmt(&mut self, stmt: &mut Block) -> Result<(), Box<dyn Error>>;
     fn visit_class_stmt(&self, stmt: &Class) -> Result<(), Box<dyn Error>>;
     fn visit_expr_stmt(&mut self, stmt: &mut Expression) -> Result<(), Box<dyn Error>>;
-    fn visit_func_stmt(&self, stmt: &Function) -> Result<(), Box<dyn Error>>;
+    fn visit_func_stmt(&mut self, stmt: &Function) -> Result<(), Box<dyn Error>>;
     fn visit_if_stmt(&mut self, stmt: &mut If) -> Result<(), Box<dyn Error>>;
     fn visit_print_stmt(&mut self, stmt: &mut Print) -> Result<(), Box<dyn Error>>;
     fn visit_return_stmt(&mut self, stmt: &Return) -> Result<(), Box<dyn Error>>;
