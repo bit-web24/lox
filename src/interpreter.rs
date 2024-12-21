@@ -282,7 +282,7 @@ impl expr::Visitor for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
+    fn visit_variable_expr(&mut self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
         let value = self.lookup_variable(&expr.name, Rc::new(Box::new(expr.clone())));
         value
     }
@@ -290,7 +290,7 @@ impl expr::Visitor for Interpreter {
 
 #[allow(unused_variables)]
 impl stmt::Visitor for Interpreter {
-    fn visit_block_stmt(&mut self, stmt: &stmt::Block) -> Result<(), Box<dyn Error>> {
+    fn visit_block_stmt(&mut self, stmt: &mut stmt::Block) -> Result<(), Box<dyn Error>> {
         self.execute_block(
             stmt.statements.clone(),
             Rc::new(RefCell::new(Environment::from(self.env.clone()))),

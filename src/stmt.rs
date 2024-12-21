@@ -10,7 +10,7 @@ pub trait Stmt: Debug {
 }
 
 pub trait Visitor {
-    fn visit_block_stmt(&mut self, stmt: &Block) -> Result<(), Box<dyn Error>>;
+    fn visit_block_stmt(&mut self, stmt: &mut Block) -> Result<(), Box<dyn Error>>;
     fn visit_class_stmt(&self, stmt: &Class) -> Result<(), Box<dyn Error>>;
     fn visit_expr_stmt(&mut self, stmt: &mut Expression) -> Result<(), Box<dyn Error>>;
     fn visit_func_stmt(&self, stmt: &Function) -> Result<(), Box<dyn Error>>;

@@ -5,9 +5,26 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-pub trait Expr: Debug {
+pub trait Expr: Debug + ExprClone {
     fn accept(&mut self, visitor: &mut dyn Visitor) -> Result<Object, Box<dyn Error>>;
     fn as_any(&self) -> &dyn Any;
+}
+pub trait ExprClone {
+    fn clone_box(&self) -> Box<dyn Expr>;
+}
+impl<T> ExprClone for T
+where
+    T: 'static + Clone + Expr,
+{
+    fn clone_box(&self) -> Box<dyn Expr> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Expr> {
+    fn clone(&self) -> Box<dyn Expr> {
+        self.clone_box()
+    }
 }
 
 pub trait Visitor {
@@ -22,7 +39,7 @@ pub trait Visitor {
     fn visit_super_expr(&self, expr: &Super) -> Result<Object, Box<dyn Error>>;
     fn visit_this_expr(&self, expr: &This) -> Result<Object, Box<dyn Error>>;
     fn visit_unary_expr(&mut self, expr: &mut Unary) -> Result<Object, Box<dyn Error>>;
-    fn visit_variable_expr(&self, expr: &Variable) -> Result<Object, Box<dyn Error>>; // var a = 20;
+    fn visit_variable_expr(&mut self, expr: &Variable) -> Result<Object, Box<dyn Error>>; // var a = 20;
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +67,7 @@ impl Expr for Assign {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Binary {
     pub left: Rc<RefCell<Box<dyn Expr>>>,
     pub operator: Token,
@@ -77,7 +94,7 @@ impl Expr for Binary {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Call {
     pub callee: Rc<RefCell<Box<dyn Expr>>>,
     pub paren: Token,
@@ -107,7 +124,7 @@ impl Expr for Call {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Get {
     object: Box<dyn Expr>,
     name: Token,
@@ -129,7 +146,7 @@ impl Expr for Get {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Grouping {
     pub expression: Rc<RefCell<Box<dyn Expr>>>,
 }
@@ -152,7 +169,7 @@ impl Expr for Grouping {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Literal {
     pub value: Object,
 }
@@ -173,7 +190,7 @@ impl Expr for Literal {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Logical {
     pub left: Rc<RefCell<Box<dyn Expr>>>,
     pub operator: Token,
@@ -200,7 +217,7 @@ impl Expr for Logical {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Set {
     object: Box<dyn Expr>,
     name: Token,
@@ -227,7 +244,7 @@ impl Expr for Set {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Super {
     keyword: Token,
     method: Token,
@@ -249,7 +266,7 @@ impl Expr for Super {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct This {
     keyword: Token,
 }
@@ -270,7 +287,7 @@ impl Expr for This {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Unary {
     pub operator: Token,
     pub right: Rc<RefCell<Box<dyn Expr>>>,

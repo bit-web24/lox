@@ -8,7 +8,7 @@ mod function;
 mod interpreter;
 mod object;
 mod parser;
-// mod resolver;
+mod resolver;
 mod scanner;
 mod stmt;
 mod token;
@@ -18,7 +18,7 @@ mod tests;
 
 use interpreter::Interpreter;
 use parser::Parser;
-// use resolver::Resolver;
+use resolver::Resolver;
 use scanner::Scanner;
 use token::Token;
 
@@ -80,11 +80,11 @@ impl Lox {
         let tokens: Vec<Token> = scanner.scan_tokens();
 
         let mut parser_: Parser = parser::Parser::new(tokens);
-        let statements = parser_.parse()?;
+        let mut statements = parser_.parse()?;
 
         let mut interpreter = Interpreter::new();
-        // let mut resolver: Resolver<'_> = Resolver::new(&interpreter);
-        // resolver.resolve(&mut statements)?;
+        let mut resolver: Resolver<'_> = Resolver::new(&mut interpreter);
+        resolver.resolve(&mut statements)?;
 
         interpreter.interpret(statements)?;
 
