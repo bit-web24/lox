@@ -88,7 +88,7 @@ impl<'a> Resolver<'a> {
             }
         }
     }
-    
+
     pub fn resolve_func(&mut self, func: &stmt::Function) {
         self.begin_scope();
         for param in &func.params {
@@ -112,7 +112,8 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     }
 
     fn visit_expr_stmt(&mut self, stmt: &mut stmt::Expression) -> Result<(), Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(stmt.expression.borrow_mut().as_mut())?;
+        Ok(())
     }
 
     fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
@@ -123,15 +124,24 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     }
 
     fn visit_if_stmt(&mut self, stmt: &mut stmt::If) -> Result<(), Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(stmt.condition.borrow_mut().as_mut())?;
+        self.resolve_statement(stmt.then_branch.borrow_mut().as_mut())?;
+        if let Some(else_branch) = &stmt.else_branch {
+            self.resolve_statement(else_branch.borrow_mut().as_mut())?;
+        }
+        Ok(())
     }
 
     fn visit_print_stmt(&mut self, stmt: &mut stmt::Print) -> Result<(), Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(stmt.expression.borrow_mut().as_mut())?;
+        Ok(())
     }
 
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Result<(), Box<dyn Error>> {
-        todo!()
+        if let Some(value) = &stmt.value {
+            self.resolve_expression(value.borrow_mut().as_mut())?;
+        }
+        Ok(())
     }
 
     fn visit_var_stmt(&mut self, stmt: &mut stmt::Var) -> Result<(), Box<dyn Error>> {
@@ -148,7 +158,9 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     }
 
     fn visit_while_stmt(&mut self, stmt: &stmt::While) -> Result<(), Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(stmt.condition.borrow_mut().as_mut())?;
+        self.resolve_statement(stmt.body.borrow_mut().as_mut())?;
+        Ok(())
     }
 }
 
@@ -160,11 +172,17 @@ impl<'a> expr::Visitor for Resolver<'a> {
     }
 
     fn visit_binary_expr(&mut self, expr: &mut expr::Binary) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(expr.left.borrow_mut().as_mut())?;
+        self.resolve_expression(expr.right.borrow_mut().as_mut())?;
+        Ok(Object::Nil)
     }
 
     fn visit_call_expr(&mut self, expr: &expr::Call) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(expr.callee.borrow_mut().as_mut())?;
+        for arg in &expr.arguments {
+            self.resolve_expression(arg.borrow_mut().as_mut())?;
+        }
+        Ok(Object::Nil)
     }
 
     fn visit_get_expr(&self, expr: &expr::Get) -> Result<Object, Box<dyn Error>> {
@@ -172,15 +190,18 @@ impl<'a> expr::Visitor for Resolver<'a> {
     }
 
     fn visit_group_expr(&mut self, expr: &mut expr::Grouping) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(expr.expression.borrow_mut().as_mut())?;
+        Ok(Object::Nil)
     }
 
-    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_literal_expr(&self, _expr: &expr::Literal) -> Result<Object, Box<dyn Error>> {
+        Ok(Object::Nil)
     }
 
     fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(expr.left.borrow_mut().as_mut())?;
+        self.resolve_expression(expr.right.borrow_mut().as_mut())?;
+        Ok(Object::Nil)
     }
 
     fn visit_set_expr(&self, expr: &expr::Set) -> Result<Object, Box<dyn Error>> {
@@ -196,7 +217,8 @@ impl<'a> expr::Visitor for Resolver<'a> {
     }
 
     fn visit_unary_expr(&mut self, expr: &mut expr::Unary) -> Result<Object, Box<dyn Error>> {
-        todo!()
+        self.resolve_expression(expr.right.borrow_mut().as_mut())?;
+        Ok(Object::Nil)
     }
 
     fn visit_variable_expr(&mut self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
