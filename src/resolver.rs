@@ -1,5 +1,6 @@
 use std::{collections::HashMap, error::Error};
 use std::cell::RefCell;
+use std::cmp::PartialEq;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use crate::{
@@ -13,6 +14,13 @@ use crate::{
 pub struct Resolver<'a> {
     interpreter: &'a mut Interpreter,
     scopes: Vec<HashMap<String, bool>>,
+    current_func: FuncType,
+}
+
+#[derive(Clone, PartialEq)]
+enum FuncType {
+    None,
+    Function,
 }
 
 impl<'a> Resolver<'a> {
@@ -20,6 +28,7 @@ impl<'a> Resolver<'a> {
         Self {
             interpreter,
             scopes: Vec::new(),
+            current_func: FuncType::None,
         }
     }
 
@@ -66,10 +75,22 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn declare(&mut self, name: &str) {
+    pub fn declare(&mut self, name: &str) -> Result<(), Box<dyn Error>> {
         if let Some(scope) = self.scopes.last_mut() {
+            if scope.contains_key(name) {
+                return Err(self.interpreter.error(
+                    "ResolverError: Already a variable with this name in this scope.",
+                    &Token::new(
+                        crate::token::token_type::TokenType::NIL,
+                        "None".to_string(),
+                        None,
+                        0,
+                    ),
+                ));
+            }
             scope.insert(name.to_string(), false);
         }
+        Ok(())
     }
 
     pub fn define(&mut self, name: &str) {
@@ -89,13 +110,18 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn resolve_func(&mut self, func: &stmt::Function) {
+    pub fn resolve_func(&mut self, func: &stmt::Function, func_type: FuncType) -> Result<(), Box<dyn Error>> {
+        let enclosing_func = self.current_func.clone();
+        self.current_func = func_type;
+
         self.begin_scope();
         for param in &func.params {
-            self.declare(param.lexeme.as_str());
+            self.declare(param.lexeme.as_str())?;
             self.define(param.lexeme.as_str());
         }
-        self.end_scope().unwrap();
+        self.end_scope()?;
+        self.current_func = enclosing_func;
+        Ok(())
     }
 }
 
@@ -117,9 +143,9 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     }
 
     fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
-        self.declare(stmt.name.lexeme.as_str());
+        self.declare(stmt.name.lexeme.as_str())?;
         self.define(stmt.name.lexeme.as_str());
-        self.resolve_func(stmt);
+        self.resolve_func(stmt, FuncType::Function)?;
         Ok(())
     }
 
@@ -138,6 +164,17 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     }
 
     fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Result<(), Box<dyn Error>> {
+        if self.current_func == FuncType::None {
+            return Err(self.interpreter.error(
+                "ResolverError: Can't return from top-level code.",
+                &Token::new(
+                    crate::token::token_type::TokenType::NIL,
+                    "None".to_string(),
+                    None,
+                    0,
+                ),
+            ));
+        }
         if let Some(value) = &stmt.value {
             self.resolve_expression(value.borrow_mut().as_mut())?;
         }
@@ -145,7 +182,7 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     }
 
     fn visit_var_stmt(&mut self, stmt: &mut stmt::Var) -> Result<(), Box<dyn Error>> {
-        self.declare(&stmt.name.lexeme);
+        self.declare(&stmt.name.lexeme)?;
         if stmt.initializer.is_some() {
             let expr = stmt.initializer.as_ref().unwrap();
             let mut c =expr.borrow_mut();
