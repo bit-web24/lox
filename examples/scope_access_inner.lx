@@ -1,0 +1,7 @@
+{
+  var b = 30;
+  assert(b == 30);
+
+  print b;
+}
+

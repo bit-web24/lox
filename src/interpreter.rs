@@ -17,6 +17,7 @@ pub mod return_v;
 use crate::callable::Callable;
 use expr_key::ExprKey;
 use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
+use log::{log, Level};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
@@ -92,9 +93,15 @@ impl Interpreter {
         name: &Token,
         expr: Rc<Box<dyn Expr>>,
     ) -> Result<Object, Box<dyn Error>> {
-        if let Some(distance) = self.locals.get(&ExprKey { expr }) {
+        // println!("CHECK-ENV: {:#?}", self.env);
+        assert_eq!(&ExprKey { expr: expr.clone() }, self.locals.iter().next().unwrap().0);
+        let l = &self.locals;
+        let loc = ExprKey { expr };
+        if let Some(distance) = self.locals.get(&loc) {
+            println!("did it find here: {}", distance);
             return self.env.borrow().get_at(*distance, name.lexeme.clone());
         } else {
+            println!("did it find here {:?}", name);
             return self.globals.borrow().get(name);
         }
     }
@@ -105,12 +112,13 @@ impl Interpreter {
         environment: Rc<RefCell<Environment>>,
     ) -> Result<(), Box<dyn Error>> {
         let previous = self.env.clone();
-        self.env = environment.clone();
+        self.env = environment;
+        println!("STATEMENTS: {:#?}", statements);
 
         for statement in statements {
             self.execute(statement)?;
         }
-
+        previous.borrow_mut().enclosing = Some(self.env.clone());
         self.env = previous;
         Ok(())
     }
@@ -127,10 +135,6 @@ impl Interpreter {
 
 #[allow(unused_variables)]
 impl expr::Visitor for Interpreter {
-    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Object, Box<dyn Error>> {
-        Ok(expr.value.clone())
-    }
-
     fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Object, Box<dyn Error>> {
         let value = self.evaluate(expr.value.clone())?;
 
@@ -218,6 +222,10 @@ impl expr::Visitor for Interpreter {
         self.evaluate(expr.expression.clone())
     }
 
+    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Object, Box<dyn Error>> {
+        Ok(expr.value.clone())
+    }
+
     fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Result<Object, Box<dyn Error>> {
         let left = self.evaluate(expr.left.clone())?;
 
@@ -283,7 +291,9 @@ impl expr::Visitor for Interpreter {
     }
 
     fn visit_variable_expr(&mut self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
+        println!("I am here");
         let value = self.lookup_variable(&expr.name, Rc::new(Box::new(expr.clone())));
+        println!("I am here: {:?}", value);
         value
     }
 }
@@ -294,6 +304,7 @@ impl stmt::Visitor for Interpreter {
         self.execute_block(
             stmt.statements.clone(),
             Rc::new(RefCell::new(Environment::from(self.env.clone()))),
+            // Rc::new(RefCell::new(Environment::new())),
         )?;
         Ok(())
     }
@@ -328,7 +339,9 @@ impl stmt::Visitor for Interpreter {
     }
 
     fn visit_print_stmt(&mut self, stmt: &mut stmt::Print) -> Result<(), Box<dyn Error>> {
+        println!("Before-Eval:");
         let value = self.evaluate(stmt.expression.clone())?;
+        println!("Value-After-Eval: {}", value);
         println!("{}", value);
         Ok(())
     }
@@ -347,8 +360,11 @@ impl stmt::Visitor for Interpreter {
         if stmt.initializer.is_some() {
             value = self.evaluate(stmt.initializer.clone().unwrap())?;
         }
+        println!("VAR-VALUE: {:#?}", value);
 
         self.env.borrow_mut().define(&stmt.name, value)?;
+        println!("ENV-AFTER-VAR-DEC: {:#?}", self.env);
+        println!("GLOBAL-ENV-AFTER-VAR-DEC: {:#?}", self.locals);
         Ok(())
     }
 

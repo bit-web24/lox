@@ -8,8 +8,8 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    values: HashMap<String, Object>,
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    pub values: HashMap<String, Object>,
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
@@ -31,7 +31,7 @@ impl Environment {
         if let Some(value) = self.values.get(&token.lexeme) {
             return Ok(value.clone());
         }
-
+        
         if let Some(enclosing) = &self.enclosing {
             return enclosing.borrow().get(token);
         }

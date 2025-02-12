@@ -110,7 +110,7 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn resolve_func(&mut self, func: &stmt::Function, func_type: FuncType) -> Result<(), Box<dyn Error>> {
+    fn resolve_func(&mut self, func: &stmt::Function, func_type: FuncType) -> Result<(), Box<dyn Error>> {
         let enclosing_func = self.current_func.clone();
         self.current_func = func_type;
 
