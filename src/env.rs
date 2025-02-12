@@ -31,10 +31,6 @@ impl Environment {
         if let Some(value) = self.values.get(&token.lexeme) {
             return Ok(value.clone());
         }
-        
-        if let Some(enclosing) = &self.enclosing {
-            return enclosing.borrow().get(token);
-        }
 
         Err(Self::error(
             format!("Undefined variable '{}'.", token.lexeme),
@@ -59,7 +55,7 @@ impl Environment {
             environ = x;
         }
 
-        return Ok(environ);
+        Ok(environ)
     }
 
     pub fn define(&mut self, token: &Token, value: Object) -> Result<(), Box<dyn Error>> {
