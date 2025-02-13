@@ -1,4 +1,4 @@
-use crate::{error, interpreter, object, parser, scanner};
+use crate::{error, interpreter, parser, scanner};
 
 #[test]
 fn test_print_statement() {
@@ -8,7 +8,7 @@ fn test_print_statement() {
     assert_eq!(tokens.len(), 3 + 1); // 'print', '20', ';' + EOF
 
     let mut parser = parser::Parser::new(tokens);
-    let statements = parser.parse::<object::Object>().unwrap();
+    let statements = parser.parse().unwrap();
     assert_eq!(statements.len(), 1);
 
     let mut interpreter = interpreter::Interpreter::new();
@@ -25,7 +25,7 @@ fn test_assignment_expression() {
     assert_eq!(tokens.len(), 5); // 'a', '=', '20', ';' + EOF
 
     let mut parser = parser::Parser::new(tokens);
-    let statements = parser.parse::<object::Object>().unwrap();
+    let statements = parser.parse().unwrap();
     assert_eq!(statements.len(), 1);
 
     let mut interpreter = interpreter::Interpreter::new();
@@ -38,7 +38,7 @@ fn test_assignment_expression() {
             .downcast::<error::LoxError>()
             .unwrap()
             .to_string(),
-        "RuntimeError [line 1] : Undefined variable '20'."
+        "RuntimeError [line 1] : Undefined variable 'a'."
     );
 }
 
@@ -53,7 +53,7 @@ fn test_variable_declaration_and_assignment() {
     assert_eq!(tokens.len(), 10); // 'var', 'a', '=', '20', ';', 'a', '=', 'bittu', ';' + EOF
 
     let mut parser = parser::Parser::new(tokens);
-    let statements = parser.parse::<object::Object>().unwrap();
+    let statements = parser.parse().unwrap();
     assert_eq!(statements.len(), 2);
 
     let mut interpreter = interpreter::Interpreter::new();

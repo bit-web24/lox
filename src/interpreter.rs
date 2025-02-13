@@ -4,39 +4,46 @@ use crate::{
     callable,
     env::Environment,
     error::{error_types::RuntimeError, LoxError},
-    expr, function,
+    expr::{self, Expr},
+    function,
     object::Object,
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
 
+mod expr_key;
 pub mod return_v;
 
 use crate::callable::Callable;
-
-use std::{borrow::Borrow, cell::RefCell, error::Error, ops::Not, rc::Rc};
+use expr_key::ExprKey;
+use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     pub env: Rc<RefCell<Environment>>,
+    pub globals: Rc<RefCell<Environment>>,
+    pub locals: HashMap<ExprKey, i32>,
 }
 
 impl Interpreter {
     pub fn evaluate(
         &mut self,
-        expr: Rc<RefCell<Box<dyn expr::Expr<Object>>>>,
+        expr: Rc<RefCell<Box<dyn expr::Expr>>>,
     ) -> Result<Object, Box<dyn std::error::Error>> {
         expr.borrow_mut().accept(self)
     }
 
     pub fn new() -> Self {
+        let environ = Rc::new(RefCell::new(Environment::new()));
         let interpreter = Self {
-            env: Rc::new(RefCell::new(Environment::new())),
+            env: environ.clone(),
+            globals: environ.clone(),
+            locals: HashMap::new(),
         };
 
         for (name, function) in callable::get_native_functions() {
             interpreter
-                .env
+                .globals
                 .borrow_mut()
                 .define(
                     &Token::new(TokenType::IDENTIFIER, name.to_string(), None, 0),
@@ -56,10 +63,7 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(
-        &mut self,
-        statements: Vec<Box<dyn Stmt<Object>>>,
-    ) -> Result<Object, Box<dyn Error>> {
+    pub fn interpret(&mut self, statements: Vec<Box<dyn Stmt>>) -> Result<Object, Box<dyn Error>> {
         let statements = statements;
 
         for statement in statements {
@@ -68,26 +72,45 @@ impl Interpreter {
 
         Ok(Object::Nil)
     }
-    pub fn execute(
-        &mut self,
-        stmt: Rc<RefCell<Box<dyn Stmt<Object>>>>,
-    ) -> Result<(), Box<dyn Error>> {
+
+    pub fn execute(&mut self, stmt: Rc<RefCell<Box<dyn Stmt>>>) -> Result<(), Box<dyn Error>> {
         stmt.borrow_mut().accept(self)?;
         Ok(())
     }
 
+    pub fn resolve(&mut self, expr: Box<dyn Expr>, depth: i32) {
+        self.locals.insert(
+            ExprKey {
+                expr: Rc::new(expr),
+            },
+            depth,
+        );
+    }
+
+    pub fn lookup_variable(
+        &self,
+        name: &Token,
+        expr: Rc<Box<dyn Expr>>,
+    ) -> Result<Object, Box<dyn Error>> {
+        if let Some(distance) = self.locals.get(&ExprKey { expr }) {
+            self.env.borrow().get_at(*distance, name.lexeme.clone())
+        } else {
+            self.globals.borrow().get(name)
+        }
+    }
+
     pub fn execute_block(
         &mut self,
-        statements: Vec<Rc<RefCell<Box<dyn Stmt<Object>>>>>,
+        statements: Vec<Rc<RefCell<Box<dyn Stmt>>>>,
         environment: Rc<RefCell<Environment>>,
     ) -> Result<(), Box<dyn Error>> {
         let previous = self.env.clone();
-        self.env = environment.clone();
+        self.env = environment;
 
         for statement in statements {
             self.execute(statement)?;
         }
-
+        previous.borrow_mut().enclosing = Some(self.env.clone());
         self.env = previous;
         Ok(())
     }
@@ -102,24 +125,23 @@ impl Interpreter {
     }
 }
 
-impl expr::Visitor<Object> for Interpreter {
-    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Object, Box<dyn Error>> {
-        Ok(expr.value.clone())
-    }
-
-    fn visit_assign_expr(
-        &mut self,
-        expr: &mut expr::Assign<Object>,
-    ) -> Result<Object, Box<dyn Error>> {
+#[allow(unused_variables)]
+impl expr::Visitor for Interpreter {
+    fn visit_assign_expr(&mut self, expr: &expr::Assign) -> Result<Object, Box<dyn Error>> {
         let value = self.evaluate(expr.value.clone())?;
-        self.env.borrow_mut().assign(&expr.name, value.clone())?;
+
+        if let Some(distance) = self.locals.get(&ExprKey {
+            expr: Rc::new(Box::new(expr.clone())),
+        }) {
+            self.env.borrow().assign_at(*distance, &expr.name, &value)?;
+        } else {
+            self.globals.borrow_mut().assign(&expr.name, &value)?;
+        }
+
         Ok(value)
     }
 
-    fn visit_binary_expr(
-        &mut self,
-        expr: &mut expr::Binary<Object>,
-    ) -> Result<Object, Box<dyn Error>> {
+    fn visit_binary_expr(&mut self, expr: &mut expr::Binary) -> Result<Object, Box<dyn Error>> {
         let left = self.evaluate(expr.left.clone())?;
         let right = self.evaluate(expr.right.clone())?;
 
@@ -171,7 +193,7 @@ impl expr::Visitor<Object> for Interpreter {
         }
     }
 
-    fn visit_call_expr(&mut self, expr: &expr::Call<Object>) -> Result<Object, Box<dyn Error>> {
+    fn visit_call_expr(&mut self, expr: &expr::Call) -> Result<Object, Box<dyn Error>> {
         let function: Box<dyn Callable> = Box::new(self.evaluate(expr.callee.clone())?);
 
         let arguments = expr
@@ -184,25 +206,23 @@ impl expr::Visitor<Object> for Interpreter {
         Ok(returned_v)
     }
 
-    fn visit_get_expr(&self, expr: &expr::Get<Object>) -> Result<Object, Box<dyn Error>> {
+    fn visit_get_expr(&self, expr: &expr::Get) -> Result<Object, Box<dyn Error>> {
         todo!()
     }
 
-    fn visit_group_expr(
-        &mut self,
-        expr: &mut expr::Grouping<Object>,
-    ) -> Result<Object, Box<dyn Error>> {
+    fn visit_group_expr(&mut self, expr: &mut expr::Grouping) -> Result<Object, Box<dyn Error>> {
         self.evaluate(expr.expression.clone())
     }
 
-    fn visit_logical_expr(
-        &mut self,
-        expr: &expr::Logical<Object>,
-    ) -> Result<Object, Box<dyn Error>> {
+    fn visit_literal_expr(&self, expr: &expr::Literal) -> Result<Object, Box<dyn Error>> {
+        Ok(expr.value.clone())
+    }
+
+    fn visit_logical_expr(&mut self, expr: &expr::Logical) -> Result<Object, Box<dyn Error>> {
         let left = self.evaluate(expr.left.clone())?;
 
-        let mut get_truth = |token_type: &TokenType| {
-            let mut truth = Interpreter::is_truthy(left.borrow());
+        let get_truth = |token_type: &TokenType| {
+            let mut truth = Interpreter::is_truthy(&left);
             truth = if token_type.eq(&TokenType::AND) {
                 truth.not()
             } else {
@@ -210,20 +230,20 @@ impl expr::Visitor<Object> for Interpreter {
             };
 
             if truth {
-                Ok(left.borrow().to_owned())
+                Ok(left)
             } else {
                 Ok(self.evaluate(expr.right.clone())?)
             }
         };
 
-        match expr.operator.type_.borrow() {
+        match expr.operator.type_ {
             TokenType::AND => get_truth(&TokenType::AND),
             TokenType::OR => get_truth(&TokenType::OR),
             _ => Err(self.error("Unexpected Token", &expr.operator)),
         }
     }
 
-    fn visit_set_expr(&self, expr: &expr::Set<Object>) -> Result<Object, Box<dyn Error>> {
+    fn visit_set_expr(&self, expr: &expr::Set) -> Result<Object, Box<dyn Error>> {
         todo!()
     }
 
@@ -235,10 +255,7 @@ impl expr::Visitor<Object> for Interpreter {
         todo!()
     }
 
-    fn visit_unary_expr(
-        &mut self,
-        expr: &mut expr::Unary<Object>,
-    ) -> Result<Object, Box<dyn Error>> {
+    fn visit_unary_expr(&mut self, expr: &mut expr::Unary) -> Result<Object, Box<dyn Error>> {
         let right = self.evaluate(expr.right.clone())?;
 
         match expr.operator.type_ {
@@ -265,14 +282,15 @@ impl expr::Visitor<Object> for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        let value = self.env.borrow_mut().get(&expr.name)?;
-        Ok(value)
+    fn visit_variable_expr(&mut self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
+        let value = self.lookup_variable(&expr.name, Rc::new(Box::new(expr.clone())));
+        value
     }
 }
 
-impl stmt::Visitor<Object> for Interpreter {
-    fn visit_block_stmt(&mut self, stmt: &stmt::Block<Object>) -> Result<(), Box<dyn Error>> {
+#[allow(unused_variables)]
+impl stmt::Visitor for Interpreter {
+    fn visit_block_stmt(&mut self, stmt: &mut stmt::Block) -> Result<(), Box<dyn Error>> {
         self.execute_block(
             stmt.statements.clone(),
             Rc::new(RefCell::new(Environment::from(self.env.clone()))),
@@ -280,19 +298,16 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_class_stmt(&self, stmt: &stmt::Class<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_class_stmt(&self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
         todo!()
     }
 
-    fn visit_expr_stmt(
-        &mut self,
-        stmt: &mut stmt::Expression<Object>,
-    ) -> Result<(), Box<dyn Error>> {
+    fn visit_expr_stmt(&mut self, stmt: &mut stmt::Expression) -> Result<(), Box<dyn Error>> {
         self.evaluate(stmt.expression.clone())?;
         Ok(())
     }
 
-    fn visit_func_stmt(&self, stmt: &stmt::Function<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
         let function: function::Function =
             function::Function::new(stmt.to_owned(), self.env.clone());
         let fn_obj = Object::Function(Some(Rc::new(RefCell::new(function))), None);
@@ -300,7 +315,7 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_if_stmt(&mut self, stmt: &mut stmt::If<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_if_stmt(&mut self, stmt: &mut stmt::If) -> Result<(), Box<dyn Error>> {
         if Interpreter::is_truthy(&self.evaluate(stmt.condition.clone())?) {
             self.execute(stmt.then_branch.clone())?;
         } else {
@@ -312,13 +327,13 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_print_stmt(&mut self, stmt: &mut stmt::Print<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_print_stmt(&mut self, stmt: &mut stmt::Print) -> Result<(), Box<dyn Error>> {
         let value = self.evaluate(stmt.expression.clone())?;
         println!("{}", value);
         Ok(())
     }
 
-    fn visit_return_stmt(&mut self, stmt: &stmt::Return<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_return_stmt(&mut self, stmt: &stmt::Return) -> Result<(), Box<dyn Error>> {
         if let Some(value) = stmt.value.clone() {
             let value = self.evaluate(value.clone())?;
             return Err(Box::new(Return { value }));
@@ -327,7 +342,7 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_var_stmt(&mut self, stmt: &mut stmt::Var<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_var_stmt(&mut self, stmt: &mut stmt::Var) -> Result<(), Box<dyn Error>> {
         let mut value = Object::Nil;
         if stmt.initializer.is_some() {
             value = self.evaluate(stmt.initializer.clone().unwrap())?;
@@ -337,7 +352,7 @@ impl stmt::Visitor<Object> for Interpreter {
         Ok(())
     }
 
-    fn visit_while_stmt(&mut self, stmt: &stmt::While<Object>) -> Result<(), Box<dyn Error>> {
+    fn visit_while_stmt(&mut self, stmt: &stmt::While) -> Result<(), Box<dyn Error>> {
         while Interpreter::is_truthy(&self.evaluate(stmt.condition.clone())?) {
             self.execute(stmt.body.clone())?;
         }

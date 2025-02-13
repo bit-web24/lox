@@ -11,12 +11,12 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Function {
-    pub declaration: stmt::Function<Object>,
+    pub declaration: stmt::Function,
     pub closeure: Rc<RefCell<Environment>>,
 }
 
 impl Function {
-    pub fn new(declaration: stmt::Function<Object>, closeure: Rc<RefCell<Environment>>) -> Self {
+    pub fn new(declaration: stmt::Function, closeure: Rc<RefCell<Environment>>) -> Self {
         Self {
             declaration,
             closeure,

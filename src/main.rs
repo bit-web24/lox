@@ -8,6 +8,7 @@ mod function;
 mod interpreter;
 mod object;
 mod parser;
+mod resolver;
 mod scanner;
 mod stmt;
 mod token;
@@ -16,8 +17,8 @@ mod token;
 mod tests;
 
 use interpreter::Interpreter;
-use object::Object;
 use parser::Parser;
+use resolver::Resolver;
 use scanner::Scanner;
 use token::Token;
 
@@ -35,15 +36,14 @@ impl Lox {
     }
 
     pub fn exec(&mut self, args: Vec<String>) -> Result<(), Box<dyn Error>> {
-        if args.len() > 2 {
-            println!("Usage: lox [script]");
+        let n = args.len();
+        if n < 2 || n > 2 {
+            println!("Usage: lox <script>");
             exit(64);
-        } else if args.len() == 2 {
+        } else {
             let mut args = args.into_iter();
             args.next();
             self.run_file(args.next().unwrap())?;
-        } else {
-            self.run_prompt()?;
         }
 
         Ok(())
@@ -60,28 +60,17 @@ impl Lox {
         Ok(())
     }
 
-    fn run_prompt(&mut self) -> Result<(), Box<dyn Error>> {
-        loop {
-            print!("lox> ");
-            std::io::stdout().flush()?;
-            let mut line = String::new();
-            if std::io::stdin().read_line(&mut line)? == 0 {
-                break;
-            }
-            self.run(line.trim().to_string())?;
-            self.had_error = false;
-        }
-        Ok(())
-    }
-
     fn run(&mut self, source: String) -> Result<(), Box<dyn Error>> {
         let mut scanner = Scanner::new(source);
         let tokens: Vec<Token> = scanner.scan_tokens();
 
         let mut parser_: Parser = parser::Parser::new(tokens);
-        let statements = parser_.parse::<Object>()?;
+        let mut statements = parser_.parse()?;
 
         let mut interpreter = Interpreter::new();
+        let mut resolver: Resolver<'_> = Resolver::new(&mut interpreter);
+        resolver.resolve(&mut statements)?;
+
         interpreter.interpret(statements)?;
 
         Ok(())
