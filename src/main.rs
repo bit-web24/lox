@@ -36,15 +36,14 @@ impl Lox {
     }
 
     pub fn exec(&mut self, args: Vec<String>) -> Result<(), Box<dyn Error>> {
-        if args.len() > 2 {
-            println!("Usage: lox [script]");
+        let n = args.len();
+        if n < 2 || n > 2 {
+            println!("Usage: lox <script>");
             exit(64);
-        } else if args.len() == 2 {
+        } else {
             let mut args = args.into_iter();
             args.next();
             self.run_file(args.next().unwrap())?;
-        } else {
-            self.run_prompt()?;
         }
 
         Ok(())
@@ -57,20 +56,6 @@ impl Lox {
             exit(65);
         } else if self.had_runtime_error {
             exit(70)
-        }
-        Ok(())
-    }
-
-    fn run_prompt(&mut self) -> Result<(), Box<dyn Error>> {
-        loop {
-            print!("lox> ");
-            std::io::stdout().flush()?;
-            let mut line = String::new();
-            if std::io::stdin().read_line(&mut line)? == 0 {
-                break;
-            }
-            self.run(line.trim().to_string())?;
-            self.had_error = false;
         }
         Ok(())
     }
