@@ -1,8 +1,3 @@
-use std::{collections::HashMap, error::Error};
-use std::cell::RefCell;
-use std::cmp::PartialEq;
-use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
 use crate::{
     expr::{self, Expr},
     interpreter::Interpreter,
@@ -10,6 +5,11 @@ use crate::{
     stmt::{self, Stmt},
     token::Token,
 };
+use std::cell::RefCell;
+use std::cmp::PartialEq;
+use std::ops::DerefMut;
+use std::rc::Rc;
+use std::{collections::HashMap, error::Error};
 
 pub struct Resolver<'a> {
     interpreter: &'a mut Interpreter,
@@ -39,7 +39,10 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    pub fn resolve_rc(&mut self, statements: &mut Vec<Rc<RefCell<Box<dyn Stmt>>>>) -> Result<(), Box<dyn Error>> {
+    pub fn resolve_rc(
+        &mut self,
+        statements: &mut Vec<Rc<RefCell<Box<dyn Stmt>>>>,
+    ) -> Result<(), Box<dyn Error>> {
         for statement in statements.iter_mut() {
             self.resolve_statement(statement.borrow_mut().as_mut())?;
         }
@@ -103,14 +106,21 @@ impl<'a> Resolver<'a> {
     }
 
     pub fn resolve_local(&mut self, expr: &dyn Expr, name: &str) {
-        for i in (0..self.scopes.len()).rev() {
+        let n = self.scopes.len();
+        for i in (0..n).rev() {
             if self.scopes.get(i).unwrap().contains_key(name) {
-                self.interpreter.resolve(expr.clone_box(), (self.scopes.len()-1-i) as i32)
+                let distance = self.scopes.len() - 1 - i;
+                self.interpreter.resolve(expr.clone_box(), distance as i32);
+                return;
             }
         }
     }
 
-    fn resolve_func(&mut self, func: &stmt::Function, func_type: FuncType) -> Result<(), Box<dyn Error>> {
+    fn resolve_func(
+        &mut self,
+        func: &stmt::Function,
+        func_type: FuncType,
+    ) -> Result<(), Box<dyn Error>> {
         let enclosing_func = self.current_func.clone();
         self.current_func = func_type;
 
@@ -185,7 +195,7 @@ impl<'a> stmt::Visitor for Resolver<'a> {
         self.declare(&stmt.name.lexeme)?;
         if stmt.initializer.is_some() {
             let expr = stmt.initializer.as_ref().unwrap();
-            let mut c =expr.borrow_mut();
+            let mut c = expr.borrow_mut();
             let expr: &mut Box<dyn Expr> = c.deref_mut();
             let expr = expr.as_mut();
             self.resolve_expression(expr)?;
@@ -259,11 +269,14 @@ impl<'a> expr::Visitor for Resolver<'a> {
     }
 
     fn visit_variable_expr(&mut self, expr: &expr::Variable) -> Result<Object, Box<dyn Error>> {
-        if !self.scopes.is_empty() && self.scopes.last().unwrap().get(&expr.name.lexeme).unwrap() == &false {
-            return Err(self.interpreter.error(
-                "ResolverError: cannot read local variable in its own initializer.",
-                &expr.name,
-            ));
+        if !self.scopes.is_empty() {
+            let tmp = self.scopes.last().unwrap().get(&expr.name.lexeme);
+            if !tmp.is_none() && tmp.unwrap() == &false {
+                return Err(self.interpreter.error(
+                    "ResolverError: cannot read local variable in its own initializer.",
+                    &expr.name,
+                ));
+            }
         }
         self.resolve_local(expr, expr.name.lexeme.as_str());
         Ok(Object::Nil)

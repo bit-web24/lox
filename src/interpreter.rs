@@ -293,8 +293,7 @@ impl stmt::Visitor for Interpreter {
     fn visit_block_stmt(&mut self, stmt: &mut stmt::Block) -> Result<(), Box<dyn Error>> {
         self.execute_block(
             stmt.statements.clone(),
-            // Rc::new(RefCell::new(Environment::from(self.env.clone()))),
-            Rc::new(RefCell::new(Environment::new())),
+            Rc::new(RefCell::new(Environment::from(self.env.clone()))),
         )?;
         Ok(())
     }

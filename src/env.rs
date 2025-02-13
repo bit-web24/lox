@@ -51,8 +51,8 @@ impl Environment {
         let mut environ = Rc::new(RefCell::new(self.clone()));
 
         for _ in 0..distance {
-            let x = environ.borrow().enclosing.clone().unwrap();
-            environ = x;
+            let x = environ.borrow().enclosing.clone();
+            environ = x.unwrap();
         }
 
         Ok(environ)
