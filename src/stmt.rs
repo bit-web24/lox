@@ -43,12 +43,12 @@ impl Stmt for Block {
 #[derive(Debug)]
 pub struct Class {
     name: Token,
-    superclass: expr::Variable,
+    superclass: Option<expr::Variable>,
     methods: Vec<Function>,
 }
 
 impl Class {
-    fn new(name: Token, superclass: expr::Variable, methods: Vec<Function>) -> Self {
+    pub fn new(name: Token, superclass: Option<expr::Variable>, methods: Vec<Function>) -> Self {
         Self {
             name,
             superclass,

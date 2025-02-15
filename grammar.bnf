@@ -17,7 +17,8 @@ primary    -> NUMBER | STRING | "true" | "false" | "nil"
 program    -> declaration* EOF;
 declaration -> varDecl
             | statement
-            | funDecl ;
+            | funDecl
+            | classDecl ;
 statement  -> exprStmt
             | printStmt
             | block
@@ -35,4 +36,6 @@ while      -> "while" "(" expression ")" statement ;
 forStmt    -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression?  ")" statement ;
 funDecl    -> "fun" function;
 function   -> IDENTIFIER "(" parameters? ")" block ;
+parameters -> IDENTIFIER ( "," IDENTIFIER )* ;
 retunrStmt -> "return" expression? ";" ;
+classDecl  -> "class" IDENTIFIER "{" function* "}" ;

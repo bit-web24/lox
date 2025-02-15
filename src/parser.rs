@@ -1,11 +1,11 @@
-use std::{borrow::Borrow, error::Error, vec};
-
 use crate::{
     error::{error_types::ParseError, LoxError},
     expr::Expr,
     stmt::{self, Stmt},
     token::{token_type::TokenType, Token},
 };
+use std::os::linux::raw::stat;
+use std::{borrow::Borrow, error::Error, vec};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -33,9 +33,12 @@ impl Parser {
         } else if self.match_(vec![TokenType::FOR]) {
             return statement::for_statement(self);
         } else if self.match_(vec![TokenType::FUN]) {
-            return statement::function_definition(self, "function");
+            return statement::function_definition(self, "function")
+                .map(|function| Box::new(function) as Box<dyn Stmt>);
         } else if self.match_(vec![TokenType::RETURN]) {
             return statement::return_statement(self);
+        } else if self.match_(vec![TokenType::CLASS]) {
+            return statement::class_declaration(self);
         }
 
         statement::expression(self)
@@ -312,7 +315,7 @@ mod expression {
 }
 
 mod statement {
-    use super::Parser;
+    use super::{statement, Parser};
     use crate::expr::{self, Expr};
     use crate::stmt::{self, Stmt};
     use crate::token::token_type::TokenType;
@@ -443,7 +446,7 @@ mod statement {
     pub fn function_definition(
         parser: &mut Parser,
         kind: &str,
-    ) -> Result<Box<dyn Stmt>, Box<dyn Error>> {
+    ) -> Result<stmt::Function, Box<dyn Error>> {
         let name: Token = parser
             .consume(
                 TokenType::IDENTIFIER,
@@ -469,7 +472,8 @@ mod statement {
             format!("Expect '{{' before {} body.", kind).as_str(),
         )?;
         let body = block(parser)?;
-        Ok(Box::new(stmt::Function::new(name, parameters, body)))
+
+        Ok(stmt::Function::new(name, parameters, body))
     }
 
     pub fn return_statement(parser: &mut Parser) -> Result<Box<dyn Stmt>, Box<dyn Error>> {
@@ -480,5 +484,20 @@ mod statement {
         }
         parser.consume(TokenType::SEMICOLON, "Expect ';' after return value.")?;
         Ok(Box::new(stmt::Return::new(keyword, value)))
+    }
+
+    pub fn class_declaration(parser: &mut Parser) -> Result<Box<dyn Stmt>, Box<dyn Error>> {
+        let class_name: Token = parser.consume(TokenType::IDENTIFIER, "Expect class name.")?;
+        parser.consume(TokenType::LEFT_BRACE, "Expect '{' before class body.")?;
+
+        let mut methods: Vec<stmt::Function> = Vec::new();
+        while !parser.check(TokenType::RIGHT_BRACE) && !parser.is_at_end() {
+            let method = function_definition(parser, "method")?;
+            methods.push(method);
+        }
+
+        parser.consume(TokenType::RIGHT_BRACE, "Expect '}' after class body.")?;
+
+        Ok(Box::new(stmt::Class::new(class_name, None, methods)))
     }
 }
