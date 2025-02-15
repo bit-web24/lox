@@ -143,8 +143,10 @@ impl<'a> stmt::Visitor for Resolver<'a> {
         Ok(())
     }
 
-    fn visit_class_stmt(&self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
+        self.declare(stmt.name.lexeme.as_str())?;
+        self.define(stmt.name.lexeme.as_str());
+        Ok(())
     }
 
     fn visit_expr_stmt(&mut self, stmt: &mut stmt::Expression) -> Result<(), Box<dyn Error>> {

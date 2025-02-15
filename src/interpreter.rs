@@ -15,6 +15,7 @@ mod expr_key;
 pub mod return_v;
 
 use crate::callable::Callable;
+use crate::class;
 use expr_key::ExprKey;
 use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
 
@@ -298,8 +299,12 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_class_stmt(&self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
-        todo!()
+    fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
+        self.env.borrow_mut().define(&stmt.name, Object::Nil)?;
+        let klass: class::Class = class::Class::new(stmt.name.lexeme.to_owned());
+        let klass_obj: Object = Object::Class(Rc::new(RefCell::new(klass)));
+        self.env.borrow_mut().assign(&stmt.name, &klass_obj)?;
+        Ok(())
     }
 
     fn visit_expr_stmt(&mut self, stmt: &mut stmt::Expression) -> Result<(), Box<dyn Error>> {

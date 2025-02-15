@@ -11,7 +11,7 @@ pub trait Stmt: Debug {
 
 pub trait Visitor {
     fn visit_block_stmt(&mut self, stmt: &mut Block) -> Result<(), Box<dyn Error>>;
-    fn visit_class_stmt(&self, stmt: &Class) -> Result<(), Box<dyn Error>>;
+    fn visit_class_stmt(&mut self, stmt: &Class) -> Result<(), Box<dyn Error>>;
     fn visit_expr_stmt(&mut self, stmt: &mut Expression) -> Result<(), Box<dyn Error>>;
     fn visit_func_stmt(&mut self, stmt: &Function) -> Result<(), Box<dyn Error>>;
     fn visit_if_stmt(&mut self, stmt: &mut If) -> Result<(), Box<dyn Error>>;
@@ -42,9 +42,9 @@ impl Stmt for Block {
 
 #[derive(Debug)]
 pub struct Class {
-    name: Token,
-    superclass: Option<expr::Variable>,
-    methods: Vec<Function>,
+    pub name: Token,
+    pub superclass: Option<expr::Variable>,
+    pub methods: Vec<Function>,
 }
 
 impl Class {

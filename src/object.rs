@@ -1,3 +1,5 @@
+use std::fmt::write;
+use std::rc::Rc;
 use std::{
     cell::RefCell,
     error::Error,
@@ -5,9 +7,7 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use std::rc::Rc;
-
-use crate::{callable::Callable, interpreter::Interpreter};
+use crate::{callable::Callable, class, class::instance, interpreter::Interpreter};
 use crate::{function, token::Token};
 
 #[derive(Debug, Clone)]
@@ -20,6 +20,8 @@ pub enum Object {
         Option<Rc<RefCell<function::Function>>>,
         Option<fn(Vec<Object>) -> Result<Object, Box<dyn Error>>>,
     ),
+    Class(Rc<RefCell<class::Class>>),
+    Instance(Rc<RefCell<instance::Instance>>),
 }
 
 impl Object {
@@ -70,6 +72,8 @@ impl fmt::Display for Object {
             Object::String(s) => write!(f, "{}", s),
             Object::Number(n) => write!(f, "{}", n),
             Object::Boolean(b) => write!(f, "{}", b),
+            Object::Instance(i) => write!(f, "{}", i.borrow().to_string()),
+            Object::Class(c) => write!(f, "{}", c.borrow().to_string()),
             Object::Nil => write!(f, "nil"),
             _ => Ok(()),
         }
@@ -186,6 +190,7 @@ impl Callable for Object {
 
                 Ok(retunred_v)
             }
+            Object::Class(class) => Ok(class.borrow().call(interpreter, arguments, paren)?),
             _ => Err(interpreter.error("Can only call functions and classes.", &paren)),
         }
     }
