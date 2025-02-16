@@ -31,11 +31,11 @@ pub trait Visitor {
     fn visit_assign_expr(&mut self, expr: &Assign) -> Result<Object, Box<dyn Error>>; // a = 30;
     fn visit_binary_expr(&mut self, expr: &mut Binary) -> Result<Object, Box<dyn Error>>;
     fn visit_call_expr(&mut self, expr: &Call) -> Result<Object, Box<dyn Error>>;
-    fn visit_get_expr(&self, expr: &Get) -> Result<Object, Box<dyn Error>>;
+    fn visit_get_expr(&mut self, expr: &mut Get) -> Result<Object, Box<dyn Error>>;
     fn visit_group_expr(&mut self, expr: &mut Grouping) -> Result<Object, Box<dyn Error>>;
     fn visit_literal_expr(&self, expr: &Literal) -> Result<Object, Box<dyn Error>>;
     fn visit_logical_expr(&mut self, expr: &Logical) -> Result<Object, Box<dyn Error>>;
-    fn visit_set_expr(&self, expr: &Set) -> Result<Object, Box<dyn Error>>;
+    fn visit_set_expr(&mut self, expr: &Set) -> Result<Object, Box<dyn Error>>;
     fn visit_super_expr(&self, expr: &Super) -> Result<Object, Box<dyn Error>>;
     fn visit_this_expr(&self, expr: &This) -> Result<Object, Box<dyn Error>>;
     fn visit_unary_expr(&mut self, expr: &mut Unary) -> Result<Object, Box<dyn Error>>;
@@ -126,13 +126,16 @@ impl Expr for Call {
 
 #[derive(Debug, Clone)]
 pub struct Get {
-    object: Box<dyn Expr>,
-    name: Token,
+    pub object: Rc<RefCell<Box<dyn Expr>>>,
+    pub name: Token,
 }
 
 impl Get {
-    fn new(object: Box<dyn Expr>, name: Token) -> Self {
-        Self { object, name }
+    pub fn new(object: Box<dyn Expr>, name: Token) -> Self {
+        Self {
+            object: Rc::new(RefCell::new(object)),
+            name,
+        }
     }
 }
 
@@ -219,17 +222,17 @@ impl Expr for Logical {
 
 #[derive(Debug, Clone)]
 pub struct Set {
-    object: Box<dyn Expr>,
-    name: Token,
-    value: Box<dyn Expr>,
+    pub object: Rc<RefCell<Box<dyn Expr>>>,
+    pub name: Token,
+    pub value: Rc<RefCell<Box<dyn Expr>>>,
 }
 
 impl Set {
-    fn new(object: Box<dyn Expr>, name: Token, value: Box<dyn Expr>) -> Self {
+    pub fn new(object: Rc<RefCell<Box<dyn Expr>>>, name: Token, value: Box<dyn Expr>) -> Self {
         Self {
             object,
             name,
-            value,
+            value: Rc::new(RefCell::new(value)),
         }
     }
 }

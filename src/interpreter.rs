@@ -17,6 +17,7 @@ pub mod return_v;
 use crate::callable::Callable;
 use crate::class;
 use expr_key::ExprKey;
+use std::ops::Deref;
 use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -207,8 +208,13 @@ impl expr::Visitor for Interpreter {
         Ok(returned_v)
     }
 
-    fn visit_get_expr(&self, expr: &expr::Get) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_get_expr(&mut self, expr: &mut expr::Get) -> Result<Object, Box<dyn Error>> {
+        let object = self.evaluate(expr.object.clone())?;
+        if let Object::Instance(instance) = object {
+            let obj = instance.borrow_mut().get(&expr.name)?;
+            return Ok(obj);
+        }
+        Err(self.error("Only instances have properties.", &expr.name))
     }
 
     fn visit_group_expr(&mut self, expr: &mut expr::Grouping) -> Result<Object, Box<dyn Error>> {
@@ -244,8 +250,15 @@ impl expr::Visitor for Interpreter {
         }
     }
 
-    fn visit_set_expr(&self, expr: &expr::Set) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_set_expr(&mut self, expr: &expr::Set) -> Result<Object, Box<dyn Error>> {
+        let object = self.evaluate(expr.object.clone())?;
+        if let Object::Instance(instance) = object {
+            let value = self.evaluate(expr.value.clone())?;
+            instance.borrow_mut().set(&expr.name, value.clone());
+            return Ok(value);
+        }
+
+        Err(self.error("", &expr.name))
     }
 
     fn visit_super_expr(&self, expr: &expr::Super) -> Result<Object, Box<dyn Error>> {

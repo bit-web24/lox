@@ -234,8 +234,9 @@ impl<'a> expr::Visitor for Resolver<'a> {
         Ok(Object::Nil)
     }
 
-    fn visit_get_expr(&self, expr: &expr::Get) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_get_expr(&mut self, expr: &mut expr::Get) -> Result<Object, Box<dyn Error>> {
+        self.resolve_expression(expr.object.borrow_mut().as_mut())?;
+        Ok(Object::Nil)
     }
 
     fn visit_group_expr(&mut self, expr: &mut expr::Grouping) -> Result<Object, Box<dyn Error>> {
@@ -253,8 +254,11 @@ impl<'a> expr::Visitor for Resolver<'a> {
         Ok(Object::Nil)
     }
 
-    fn visit_set_expr(&self, expr: &expr::Set) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_set_expr(&mut self, expr: &expr::Set) -> Result<Object, Box<dyn Error>> {
+        self.resolve_expression(expr.value.borrow_mut().as_mut())?;
+        self.resolve_expression(expr.object.borrow_mut().as_mut())?;
+
+        Ok(Object::Nil)
     }
 
     fn visit_super_expr(&self, expr: &expr::Super) -> Result<Object, Box<dyn Error>> {

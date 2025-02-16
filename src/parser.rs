@@ -141,7 +141,7 @@ impl Parser {
 
 mod expression {
     use super::Parser;
-    use crate::expr::{self, Expr};
+    use crate::expr::{self, Expr, Get};
     use crate::object::Object;
     use crate::token::{token_type::TokenType, Token};
     use std::error::Error;
@@ -155,6 +155,12 @@ mod expression {
 
             if let Some(expr::Variable { name }) = exp.as_any().downcast_ref::<expr::Variable>() {
                 return Ok(Box::new(expr::Assign::new(name.clone(), value)));
+            } else if let Some(get_) = exp.as_any().downcast_ref::<expr::Get>() {
+                return Ok(Box::new(expr::Set::new(
+                    get_.object.clone(),
+                    get_.name.clone(),
+                    value,
+                )));
             }
 
             return Err(parser.error(&equals, "Invalid assignment target."));
@@ -281,6 +287,10 @@ mod expression {
         loop {
             if parser.match_(vec![TokenType::LEFT_PAREN]) {
                 expr = finish_call(parser, expr)?;
+            } else if parser.match_(vec![TokenType::DOT]) {
+                let name: Token =
+                    parser.consume(TokenType::IDENTIFIER, "Expect property name after '.'.")?;
+                expr = Box::new(Get::new(expr, name));
             } else {
                 break;
             }
