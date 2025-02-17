@@ -21,6 +21,7 @@ pub struct Resolver<'a> {
 enum FuncType {
     None,
     Function,
+    Method,
 }
 
 impl<'a> Resolver<'a> {
@@ -146,6 +147,12 @@ impl<'a> stmt::Visitor for Resolver<'a> {
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
         self.declare(stmt.name.lexeme.as_str())?;
         self.define(stmt.name.lexeme.as_str());
+
+        for method in stmt.methods.borrow().iter() {
+            let declaration = FuncType::Method;
+            self.resolve_func(method, declaration)?
+        }
+
         Ok(())
     }
 

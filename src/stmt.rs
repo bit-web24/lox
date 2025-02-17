@@ -44,7 +44,7 @@ impl Stmt for Block {
 pub struct Class {
     pub name: Token,
     pub superclass: Option<expr::Variable>,
-    pub methods: Vec<Function>,
+    pub methods: Rc<RefCell<Vec<Function>>>,
 }
 
 impl Class {
@@ -52,7 +52,7 @@ impl Class {
         Self {
             name,
             superclass,
-            methods,
+            methods: Rc::new(RefCell::new(methods)),
         }
     }
 }
