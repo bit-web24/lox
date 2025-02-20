@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub declaration: stmt::Function,
     pub closeure: Rc<RefCell<Environment>>,

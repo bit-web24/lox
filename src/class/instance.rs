@@ -2,6 +2,7 @@ use crate::callable::Callable;
 use crate::class::Class;
 use crate::error::error_types::RuntimeError;
 use crate::error::LoxError;
+use crate::function::Function;
 use crate::object::Object;
 use crate::token::Token;
 use std::cell::RefCell;
@@ -28,6 +29,11 @@ impl Instance {
         if self.fields.contains_key(token.lexeme.as_str()) {
             let value = self.fields.get(token.lexeme.as_str());
             return Ok(value.unwrap().clone());
+        }
+        let method: Option<Rc<RefCell<Function>>> =
+            self.class.borrow().find_method(token.lexeme.as_str());
+        if let Some(method) = method {
+            return Ok(Object::Function(Some(method), None));
         }
         Err(self.error(
             format!("Undefined property '{}'.", token.lexeme).as_str(),

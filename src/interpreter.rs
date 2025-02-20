@@ -17,6 +17,7 @@ pub mod return_v;
 use crate::callable::Callable;
 use crate::class;
 use expr_key::ExprKey;
+use std::cell::Ref;
 use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -314,13 +315,16 @@ impl stmt::Visitor for Interpreter {
     fn visit_class_stmt(&mut self, stmt: &stmt::Class) -> Result<(), Box<dyn Error>> {
         self.env.borrow_mut().define(&stmt.name, Object::Nil)?;
 
-        let mut methods: HashMap<String, function::Function> = HashMap::new();
+        let mut methods: HashMap<String, Rc<RefCell<function::Function>>> = HashMap::new();
         for method in stmt.methods.borrow().iter() {
             let function = function::Function::new(method.clone(), self.env.clone());
-            methods.insert(stmt.name.lexeme.to_owned(), function);
+            methods.insert(
+                method.name.lexeme.to_owned(),
+                Rc::new(RefCell::new(function)),
+            );
         }
 
-        let klass: class::Class = class::Class::new(stmt.name.lexeme.to_owned());
+        let klass: class::Class = class::Class::new(stmt.name.lexeme.to_owned(), methods);
         let klass_obj: Object = Object::Class(Rc::new(RefCell::new(klass)));
         self.env.borrow_mut().assign(&stmt.name, &klass_obj)?;
         Ok(())
