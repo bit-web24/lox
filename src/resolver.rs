@@ -148,11 +148,18 @@ impl<'a> stmt::Visitor for Resolver<'a> {
         self.declare(stmt.name.lexeme.as_str())?;
         self.define(stmt.name.lexeme.as_str());
 
+        self.begin_scope();
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert("this".to_string(), true);
+
         for method in stmt.methods.borrow().iter() {
             let declaration = FuncType::Method;
             self.resolve_func(method, declaration)?
         }
 
+        self.end_scope()?;
         Ok(())
     }
 
@@ -272,8 +279,9 @@ impl<'a> expr::Visitor for Resolver<'a> {
         todo!()
     }
 
-    fn visit_this_expr(&self, expr: &expr::This) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_this_expr(&mut self, expr: &expr::This) -> Result<Object, Box<dyn Error>> {
+        self.resolve_local(expr, expr.keyword.lexeme.as_str());
+        Ok(Object::Nil)
     }
 
     fn visit_unary_expr(&mut self, expr: &mut expr::Unary) -> Result<Object, Box<dyn Error>> {

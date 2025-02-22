@@ -11,7 +11,7 @@ use std::error::Error;
 use std::fmt::Display;
 use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Instance {
     class: Rc<RefCell<Class>>,
     fields: HashMap<String, Object>,
@@ -33,7 +33,7 @@ impl Instance {
         let method: Option<Rc<RefCell<Function>>> =
             self.class.borrow().find_method(token.lexeme.as_str());
         if let Some(method) = method {
-            return Ok(Object::Function(Some(method), None));
+            return method.borrow().bind(self);
         }
         Err(self.error(
             format!("Undefined property '{}'.", token.lexeme).as_str(),

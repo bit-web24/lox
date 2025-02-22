@@ -244,6 +244,10 @@ mod expression {
             )));
         }
 
+        if parser.match_(vec![TokenType::THIS]) {
+            return Ok(Box::new(expr::This::new(parser.previous())));
+        }
+
         if parser.match_(vec![TokenType::IDENTIFIER]) {
             return Ok(Box::new(expr::Variable::new(parser.previous())));
         }

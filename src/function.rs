@@ -1,10 +1,12 @@
 use crate::callable::Callable;
+use crate::class::instance::Instance;
 use crate::env::Environment;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::stmt;
 use crate::token::Token;
 
+use crate::token::token_type::TokenType;
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
@@ -21,6 +23,19 @@ impl Function {
             declaration,
             closeure,
         }
+    }
+
+    pub fn bind(&self, instance: &Instance) -> Result<Object, Box<dyn Error>> {
+        let this_tkn = Token::new(TokenType::THIS, "this".to_string(), None, -1);
+        let environment = Rc::new(RefCell::new(Environment::from(self.closeure.clone())));
+
+        let instance_: Rc<RefCell<Instance>> = Rc::new(RefCell::new(instance.clone()));
+        environment
+            .borrow_mut()
+            .define(&this_tkn, Object::Instance(instance_))?;
+
+        let func = Function::new(self.declaration.clone(), environment);
+        Ok(Object::Function(Some(Rc::new(RefCell::new(func))), None))
     }
 }
 

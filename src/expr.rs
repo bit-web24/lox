@@ -37,7 +37,7 @@ pub trait Visitor {
     fn visit_logical_expr(&mut self, expr: &Logical) -> Result<Object, Box<dyn Error>>;
     fn visit_set_expr(&mut self, expr: &Set) -> Result<Object, Box<dyn Error>>;
     fn visit_super_expr(&self, expr: &Super) -> Result<Object, Box<dyn Error>>;
-    fn visit_this_expr(&self, expr: &This) -> Result<Object, Box<dyn Error>>;
+    fn visit_this_expr(&mut self, expr: &This) -> Result<Object, Box<dyn Error>>;
     fn visit_unary_expr(&mut self, expr: &mut Unary) -> Result<Object, Box<dyn Error>>;
     fn visit_variable_expr(&mut self, expr: &Variable) -> Result<Object, Box<dyn Error>>; // var a = 20;
 }
@@ -271,11 +271,11 @@ impl Expr for Super {
 
 #[derive(Debug, Clone)]
 pub struct This {
-    keyword: Token,
+    pub keyword: Token,
 }
 
 impl This {
-    fn new(keyword: Token) -> Self {
+    pub fn new(keyword: Token) -> Self {
         Self { keyword }
     }
 }

@@ -17,7 +17,6 @@ pub mod return_v;
 use crate::callable::Callable;
 use crate::class;
 use expr_key::ExprKey;
-use std::cell::Ref;
 use std::{cell::RefCell, collections::HashMap, error::Error, ops::Not, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -258,15 +257,15 @@ impl expr::Visitor for Interpreter {
             return Ok(value);
         }
 
-        Err(self.error("", &expr.name))
+        Err(self.error("Only instances have fields.", &expr.name))
     }
 
     fn visit_super_expr(&self, expr: &expr::Super) -> Result<Object, Box<dyn Error>> {
         todo!()
     }
 
-    fn visit_this_expr(&self, expr: &expr::This) -> Result<Object, Box<dyn Error>> {
-        todo!()
+    fn visit_this_expr(&mut self, expr: &expr::This) -> Result<Object, Box<dyn Error>> {
+        self.lookup_variable(&expr.keyword, Rc::new(Box::new(expr.clone())))
     }
 
     fn visit_unary_expr(&mut self, expr: &mut expr::Unary) -> Result<Object, Box<dyn Error>> {
