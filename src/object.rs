@@ -1,4 +1,3 @@
-use std::fmt::write;
 use std::rc::Rc;
 use std::{
     cell::RefCell,
@@ -72,6 +71,7 @@ impl fmt::Display for Object {
             Object::String(s) => write!(f, "{}", s),
             Object::Number(n) => write!(f, "{}", n),
             Object::Boolean(b) => write!(f, "{}", b),
+            Object::Function(fun, ..) => write!(f, "{}", fun.clone().unwrap().borrow().to_string()),
             Object::Instance(i) => write!(f, "{}", i.borrow().to_string()),
             Object::Class(c) => write!(f, "{}", c.borrow().to_string()),
             Object::Nil => write!(f, "nil"),
