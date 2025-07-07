@@ -55,9 +55,7 @@ impl Callable for Function {
                 .define(&self.declaration.params[i], arguments[i].clone())?;
         }
 
-        if let Err(err) =
-            interpreter.execute_block(self.declaration.body.clone(), environment.clone())
-        {
+        if let Err(err) = interpreter.execute_block(self.declaration.body.clone(), environment) {
             let v = err
                 .as_ref()
                 .downcast_ref::<crate::interpreter::return_v::Return>();

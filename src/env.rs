@@ -31,10 +31,10 @@ impl Environment {
         if let Some(value) = self.values.get(&token.lexeme) {
             return Ok(value.clone());
         }
-        // println!(
-        //     "VALUES: {:?}",
-        //     self.enclosing.clone().unwrap().borrow().values
-        // );
+
+        if let Some(enclosing) = &self.enclosing {
+            return enclosing.borrow().get(token);
+        }
 
         Err(Self::error(
             format!("Undefined variable '{}'.", token.lexeme),
