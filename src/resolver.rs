@@ -83,7 +83,11 @@ impl<'a> Resolver<'a> {
         if let Some(scope) = self.scopes.last_mut() {
             if scope.contains_key(name) {
                 return Err(self.interpreter.error(
-                    "ResolverError: Already a variable with this name in this scope.",
+                    format!(
+                        "ResolverError: Already a variable with name \"{}\" in this scope.",
+                        name
+                    )
+                    .as_str(),
                     &Token::new(
                         crate::token::token_type::TokenType::NIL,
                         "None".to_string(),
