@@ -108,12 +108,15 @@ impl Interpreter {
         let previous = self.env.clone();
         self.env = environment;
 
-        for statement in statements {
-            self.execute(statement)?;
-        }
-        previous.borrow_mut().enclosing = Some(self.env.clone());
+        let result = (|| {
+            for statement in statements {
+                self.execute(statement)?;
+            }
+            Ok(())
+        })();
+
         self.env = previous;
-        Ok(())
+        result
     }
 
     pub fn error(&self, message: &str, token: &Token) -> Box<dyn Error> {
@@ -149,11 +152,11 @@ impl expr::Visitor for Interpreter {
         let rhs = right.to_owned();
         let check_number_operands = |v: Object| {
             if v.is_nil() {
-                if rhs == Object::Number(0.0) {
-                    return Err(self.error("Can't divide by zero.", &expr.operator));
+                return if rhs == Object::Number(0.0) {
+                    Err(self.error("Can't divide by zero.", &expr.operator))
                 } else {
-                    return Err(self.error("Operands must be numbers.", &expr.operator));
-                }
+                    Err(self.error("Operands must be numbers.", &expr.operator))
+                };
             }
 
             Ok(v)
@@ -334,9 +337,8 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
-        let function: function::Function =
-            function::Function::new(stmt.to_owned(), self.env.clone());
+    fn visit_func_stmt(&mut self, stmt: &mut stmt::Function) -> Result<(), Box<dyn Error>> {
+        let function: function::Function = function::Function::new(stmt.clone(), self.env.clone());
         let fn_obj = Object::Function(Some(Rc::new(RefCell::new(function))), None);
         self.env.borrow_mut().define(&stmt.name, fn_obj)?;
         Ok(())

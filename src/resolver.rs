@@ -111,7 +111,7 @@ impl<'a> Resolver<'a> {
         for i in (0..n).rev() {
             if self.scopes.get(i).unwrap().contains_key(name) {
                 let distance = self.scopes.len() - 1 - i;
-                self.interpreter.resolve(expr.clone_box(), distance as i32);
+                self.interpreter.resolve(expr.clone_box(), distance as i32); // puts the expr into "local"
                 return;
             }
         }
@@ -119,7 +119,7 @@ impl<'a> Resolver<'a> {
 
     fn resolve_func(
         &mut self,
-        func: &stmt::Function,
+        func: &mut stmt::Function,
         func_type: FuncType,
     ) -> Result<(), Box<dyn Error>> {
         let enclosing_func = self.current_func.clone();
@@ -130,6 +130,7 @@ impl<'a> Resolver<'a> {
             self.declare(param.lexeme.as_str())?;
             self.define(param.lexeme.as_str());
         }
+        self.resolve_rc(&mut func.body)?;
         self.end_scope()?;
         self.current_func = enclosing_func;
         Ok(())
@@ -154,7 +155,7 @@ impl<'a> stmt::Visitor for Resolver<'a> {
             .unwrap()
             .insert("this".to_string(), true);
 
-        for method in stmt.methods.borrow().iter() {
+        for method in stmt.methods.borrow_mut().iter_mut() {
             let declaration = FuncType::Method;
             self.resolve_func(method, declaration)?
         }
@@ -168,7 +169,7 @@ impl<'a> stmt::Visitor for Resolver<'a> {
         Ok(())
     }
 
-    fn visit_func_stmt(&mut self, stmt: &stmt::Function) -> Result<(), Box<dyn Error>> {
+    fn visit_func_stmt(&mut self, stmt: &mut stmt::Function) -> Result<(), Box<dyn Error>> {
         self.declare(stmt.name.lexeme.as_str())?;
         self.define(stmt.name.lexeme.as_str());
         self.resolve_func(stmt, FuncType::Function)?;

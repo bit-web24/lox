@@ -9,9 +9,10 @@ use crate::token::Token;
 use crate::token::token_type::TokenType;
 use std::cell::RefCell;
 use std::error::Error;
+use std::fmt;
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Function {
     pub declaration: stmt::Function,
     pub closeure: Rc<RefCell<Environment>>,
@@ -77,5 +78,16 @@ impl Callable for Function {
 
     fn to_string(&self) -> String {
         format!("<fn {}>", self.declaration.name.lexeme)
+    }
+}
+
+// Avoids printing infinite refencing output
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Function")
+            // .field("declaration", &self.declaration)
+            .field("declaration", &"<Declaration>")
+            .field("closeure", &"<Environment>")
+            .finish()
     }
 }

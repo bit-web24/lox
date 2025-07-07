@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use std::{error::Error, io::Write, process::exit};
 
 mod callable;
