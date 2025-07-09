@@ -47,27 +47,22 @@ impl Callable for Function {
         arguments: Vec<Object>,
         _paren: Token,
     ) -> Result<Object, Box<dyn Error>> {
+        use crate::interpreter::return_v::Return;
+
         let environment = Rc::new(RefCell::new(Environment::from(self.closeure.clone())));
-
-        for i in 0..self.declaration.params.len() {
-            environment
-                .borrow_mut()
-                .define(&self.declaration.params[i], arguments[i].clone())?;
+        for (param, arg) in self.declaration.params.iter().zip(arguments.iter()) {
+            environment.borrow_mut().define(param, arg.clone())?;
         }
-
-        if let Err(err) = interpreter.execute_block(self.declaration.body.clone(), environment) {
-            let v = err
-                .as_ref()
-                .downcast_ref::<crate::interpreter::return_v::Return>();
-
-            if let Some(val) = v {
-                return Ok(val.value.clone());
+        interpreter.env = environment.clone();
+        let result = interpreter.execute_block(self.declaration.body.clone(), environment);
+        match result {
+            Ok(_) => Ok(Object::Nil),
+            Err(e) if e.is::<Return>() => {
+                let return_value = e.downcast::<Return>().unwrap();
+                Ok(return_value.value)
             }
-
-            return Err(err);
+            Err(e) => Err(e),
         }
-
-        Ok(Object::Nil)
     }
 
     fn arity(&self) -> usize {
