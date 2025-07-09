@@ -21,6 +21,15 @@ impl Token {
         }
     }
 
+    pub fn from(lexeme: &str) -> Self {
+        Self {
+            type_: TokenType::VAR,
+            lexeme: lexeme.to_string(),
+            literal: None,
+            line: 0,
+        }
+    }
+
     pub fn to_string(&self) -> String {
         format!("{:?} {} {:?}", self.type_, self.lexeme, self.literal)
     }
